@@ -1,14 +1,15 @@
-module gitee.com/pefish/p-go-mysql
+module github.com/pefish/go-mysql
 
 require (
-	gitee.com/pefish/p-go-application v0.0.0-20190207112659-19d6eec7cf9d
-	gitee.com/pefish/p-go-error v0.0.0-20190207113842-d80c797909f9
-	gitee.com/pefish/p-go-format v0.0.0-20190207114242-4a14f050b01b
-	gitee.com/pefish/p-go-logger v0.0.0-20190207113114-334ba98ccbd5
-	gitee.com/pefish/p-go-random v0.0.0-20190209102119-13bc1b9b3171
-	gitee.com/pefish/p-go-reflect v0.0.0-20190207112118-fb41a3d72b89
-	gitee.com/pefish/p-go-string v0.0.0-20190209101340-bd9e0a33c325
+	gitee.com/pefish/p-go-reflect v0.0.0-20190212081755-0bdefc421be7 // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/jmoiron/sqlx v1.2.0
+	github.com/pefish/go-application v0.0.2
+	github.com/pefish/go-error v0.0.6
+	github.com/pefish/go-format v0.0.2
+	github.com/pefish/go-logger v0.0.2
+	github.com/pefish/go-random v0.0.1
+	github.com/pefish/go-reflect v0.0.1
+	github.com/pefish/go-string v0.0.1
 	google.golang.org/appengine v1.4.0 // indirect
 )
