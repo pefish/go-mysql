@@ -18,6 +18,24 @@ import (
 	"time"
 )
 
+type Configuration struct {
+	Host            string
+	Port            interface{}
+	Username        string
+	Password        string
+	Database        interface{}
+	MaxOpenConns    interface{}
+	MaxIdleConns    interface{}
+	ConnMaxLifetime interface{}
+}
+
+var (
+	DEFAULT_PORT              uint64 = 3306
+	DEFAULT_MAX_OPEN_CONNS    uint64 = 100
+	DEFAULT_MAX_IDLE_CONNS    uint64 = 30
+	DEFAULT_CONN_MAX_LIFTTIME        = 6 * time.Second
+)
+
 // ----------------------------- MysqlClass -----------------------------
 
 type MysqlClass struct {
@@ -28,31 +46,92 @@ type MysqlClass struct {
 
 func (this *MysqlClass) Close() {
 	if this.Db != nil {
-		this.Db.Close()
+		err := this.Db.Close()
+		if err != nil {
+			p_logger.Logger.Error(err)
+		} else {
+			p_logger.Logger.Info(`mysql close succeed.`)
+		}
 	}
 	if this.Tx != nil {
-		this.Tx.Rollback()
+		err := this.Tx.Rollback()
+		if err != nil {
+			p_logger.Logger.Error(err)
+		}
 	}
 }
 
-func (this *MysqlClass) Connect(host string, port int64, username string, password string, database string) {
-	if port == -1 {
-		port = 3306
+func (this *MysqlClass) ConnectWithConfiguration(configuration Configuration) {
+	var port = DEFAULT_PORT
+	if configuration.Port != nil {
+		port = p_reflect.Reflect.ToUint64(configuration.Port)
 	}
-	db := sqlx.MustConnect(
-		`mysql`,
-		fmt.Sprintf(
-			`%s:%s@tcp(%s:%d)/%s?charset=utf8&parseTime=true&multiStatements=true&loc=UTC`,
-			username,
-			password,
-			host,
-			port,
-			database,
-		),
+	var database *string
+	if configuration.Database != nil {
+		d := p_reflect.Reflect.ToString(configuration.Database)
+		database = &d
+	}
+	var maxOpenConns = DEFAULT_MAX_OPEN_CONNS
+	if configuration.MaxOpenConns != nil {
+		maxOpenConns = p_reflect.Reflect.ToUint64(configuration.MaxOpenConns)
+	}
+	var maxIdleConns = DEFAULT_MAX_IDLE_CONNS
+	if configuration.MaxIdleConns != nil {
+		maxIdleConns = p_reflect.Reflect.ToUint64(configuration.MaxIdleConns)
+	}
+	connMaxLifetime := DEFAULT_CONN_MAX_LIFTTIME
+	if configuration.ConnMaxLifetime != nil {
+		connMaxLifetime = configuration.ConnMaxLifetime.(time.Duration)
+	}
+
+	this.Connect(configuration.Host, port, configuration.Username, configuration.Password, database, maxOpenConns, maxIdleConns, connMaxLifetime)
+}
+
+func (this *MysqlClass) ConnectWithMap(map_ map[string]interface{}) {
+	var port = DEFAULT_PORT
+	if map_[`port`] != nil {
+		port = p_reflect.Reflect.ToUint64(map_[`port`])
+	}
+	var database *string
+	if map_[`database`] != nil {
+		d := p_reflect.Reflect.ToString(map_[`database`])
+		database = &d
+	}
+	var maxOpenConns = DEFAULT_MAX_OPEN_CONNS
+	if map_[`maxOpenConns`] != nil {
+		maxOpenConns = p_reflect.Reflect.ToUint64(map_[`maxOpenConns`])
+	}
+	var maxIdleConns = DEFAULT_MAX_IDLE_CONNS
+	if map_[`maxIdleConns`] != nil {
+		maxIdleConns = p_reflect.Reflect.ToUint64(map_[`maxIdleConns`])
+	}
+	connMaxLifetime := DEFAULT_CONN_MAX_LIFTTIME
+	if map_[`connMaxLifeTime`] != nil {
+		fmt.Println(reflect.TypeOf(map_[`connMaxLifeTime`]).Kind())
+		connMaxLifetime = time.Duration(p_reflect.Reflect.ToInt64(map_[`connMaxLifeTime`])) * time.Second
+	}
+
+	this.Connect(map_[`host`].(string), port, map_[`username`].(string), map_[`password`].(string), database, maxOpenConns, maxIdleConns, connMaxLifetime)
+}
+
+func (this *MysqlClass) Connect(host string, port uint64, username string, password string, database *string, maxOpenConns uint64, maxIdleConns uint64, connMaxLifetime time.Duration) {
+	d := ``
+	if database != nil {
+		d = *database
+	}
+	address := fmt.Sprintf(`%s:%d`, host, port)
+	connUrl := fmt.Sprintf(
+		`%s:%s@tcp(%s)/%s?charset=utf8&parseTime=true&multiStatements=true&loc=UTC`,
+		username,
+		password,
+		address,
+		d,
 	)
-	db.DB.SetMaxOpenConns(100)                // 用于设置最大打开的连接数，默认值为0表示不限制
-	db.DB.SetMaxIdleConns(30)                 // 用于设置闲置的连接数
-	db.DB.SetConnMaxLifetime(6 * time.Second) // 设置一个超时时间，时间小于数据库的超时时间即可
+	db := sqlx.MustConnect(`mysql`, connUrl)
+	p_logger.Logger.Info(fmt.Sprintf(`mysql connect succeed. url: %s`, address))
+	db.DB.SetMaxOpenConns(int(maxOpenConns))  // 用于设置最大打开的连接数，默认值为0表示不限制
+	db.DB.SetMaxIdleConns(int(maxIdleConns))  // 用于设置闲置的连接数
+	db.DB.SetConnMaxLifetime(connMaxLifetime) // 设置一个超时时间，时间小于数据库的超时时间即可
 	this.Db = db
 }
 

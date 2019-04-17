@@ -34,3 +34,24 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 	})
 	fmt.Println(sql, params)
 }
+
+func TestMysqlClass_ConnectWithConfiguration(t *testing.T) {
+	mysqlClint := MysqlClass{}
+	mysqlClint.ConnectWithConfiguration(Configuration{
+		Host: `127.0.0.1`,
+		Username: `root`,
+		Password: `root`,
+	})
+	mysqlClint.Close()
+}
+
+func TestMysqlClass_ConnectWithMap(t *testing.T) {
+	mysqlClint := MysqlClass{}
+	mysqlClint.ConnectWithMap(map[string]interface{}{
+		`host`: `127.0.0.1`,
+		`username`: `root`,
+		`password`: `root`,
+		`connMaxLifeTime`: 10,
+	})
+	mysqlClint.Close()
+}
