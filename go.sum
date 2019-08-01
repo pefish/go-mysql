@@ -23,8 +23,6 @@ github.com/pefish/go-application v0.1.0 h1:xzr+g74pqrwMe1TFTOnBLgSD3nWgFWe7ACGqw
 github.com/pefish/go-application v0.1.0/go.mod h1:bIM667i1fBpkJxZWE0lTbYs/FW4O9YgnW5gj4sy33ko=
 github.com/pefish/go-error v0.2.0 h1:WNJX9EpOlfhqc8OX/FuLDcgZ+ccDRXdQbikOiMmF9Q8=
 github.com/pefish/go-error v0.2.0/go.mod h1:J+uA2hCnHSIbZgezmjvmWBizZTnmFhL5hOIXUqfx+BA=
-github.com/pefish/go-format v0.1.0 h1:UALs+nD1x82K6COmV468cmblmGDHz8OyUo2R8Nf0XfI=
-github.com/pefish/go-format v0.1.0/go.mod h1:UvQCWw/DME71PRF/+RsqtIEB6C9fhX6+iH2TxZc08CM=
 github.com/pefish/go-logger v0.1.0 h1:R/UAbQUcA33rgDrZKx/vaSbZpEeeA9QKSvda5U5CTQU=
 github.com/pefish/go-logger v0.1.0/go.mod h1:SXHrRdqbyQV4CY59b1vEIEHrcmMquCSEA4s+Co/9K2c=
 github.com/pefish/go-reflect v0.0.3 h1:VybCShzI0EbvlcqaebdlqEC/F5fP8beRuNpr/Ia+cr8=

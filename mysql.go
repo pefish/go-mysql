@@ -2,12 +2,12 @@ package p_mysql
 
 import (
 	sql2 "database/sql"
+	"encoding/json"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/pefish/go-application"
 	"github.com/pefish/go-error"
-	"github.com/pefish/go-format"
 	"github.com/pefish/go-logger"
 	"github.com/pefish/go-reflect"
 	"github.com/satori/go.uuid"
@@ -401,7 +401,7 @@ func (this *BuilderClass) BuildInsertSql(tableName string, params interface{}) (
 			go_error.ThrowInternal(`map value type error`)
 		}
 	} else if kind == reflect.Struct {
-		for key, val := range go_format.Format.StructToMap(params) {
+		for key, val := range this.structToMap(params) {
 			if val != nil {
 				if reflect.TypeOf(val).Kind() != reflect.String {
 					go_error.ThrowInternal(`struct value type error`)
@@ -511,7 +511,7 @@ func (this *BuilderClass) buildWhere(paramArgs *[]interface{}, where interface{}
 		}
 		whereStr += addStr
 	} else if kind == reflect.Struct {
-		for key, val := range go_format.Format.StructToMap(where) {
+		for key, val := range this.structToMap(where) {
 			if val != nil {
 				if reflect.TypeOf(val).Kind() != reflect.String {
 					go_error.ThrowInternal(`struct value type error`)
@@ -579,6 +579,16 @@ func (this *BuilderClass) BuildSelectSql(tableName string, select_ string, args 
 	return str, paramArgs
 }
 
+func (this *BuilderClass) structToMap(in_ interface{}) map[string]interface{} {
+	var result map[string]interface{}
+	inrec, err := json.Marshal(in_)
+	if err != nil {
+		panic(err)
+	}
+	json.Unmarshal(inrec, &result)
+	return result
+}
+
 func (this *BuilderClass) BuildUpdateSql(tableName string, update interface{}, args ...interface{}) (string, []interface{}) {
 	var updateStr = ``
 	var paramArgs = []interface{}{}
@@ -608,7 +618,7 @@ func (this *BuilderClass) BuildUpdateSql(tableName string, update interface{}, a
 			go_error.ThrowInternal(`map value type error`)
 		}
 	} else if updateKind == reflect.Struct {
-		for key, val := range go_format.Format.StructToMap(update) {
+		for key, val := range this.structToMap(update) {
 			if val != nil {
 				if reflect.TypeOf(val).Kind() != reflect.String {
 					go_error.ThrowInternal(`struct value type error`)
