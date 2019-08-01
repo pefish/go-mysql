@@ -9,9 +9,8 @@ import (
 	"github.com/pefish/go-error"
 	"github.com/pefish/go-format"
 	"github.com/pefish/go-logger"
-	"github.com/pefish/go-random"
 	"github.com/pefish/go-reflect"
-	"github.com/pefish/go-string"
+	"github.com/satori/go.uuid"
 	"reflect"
 	"strings"
 	"text/template"
@@ -48,15 +47,15 @@ func (this *MysqlClass) Close() {
 	if this.Db != nil {
 		err := this.Db.Close()
 		if err != nil {
-			p_logger.Logger.Error(err)
+			go_logger.Logger.Error(err)
 		} else {
-			p_logger.Logger.Info(`mysql close succeed.`)
+			go_logger.Logger.Info(`mysql close succeed.`)
 		}
 	}
 	if this.Tx != nil {
 		err := this.Tx.Rollback()
 		if err != nil {
-			p_logger.Logger.Error(err)
+			go_logger.Logger.Error(err)
 		}
 	}
 }
@@ -64,20 +63,20 @@ func (this *MysqlClass) Close() {
 func (this *MysqlClass) ConnectWithConfiguration(configuration Configuration) {
 	var port = DEFAULT_PORT
 	if configuration.Port != nil {
-		port = p_reflect.Reflect.ToUint64(configuration.Port)
+		port = go_reflect.Reflect.ToUint64(configuration.Port)
 	}
 	var database *string
 	if configuration.Database != nil {
-		d := p_reflect.Reflect.ToString(configuration.Database)
+		d := go_reflect.Reflect.ToString(configuration.Database)
 		database = &d
 	}
 	var maxOpenConns = DEFAULT_MAX_OPEN_CONNS
 	if configuration.MaxOpenConns != nil {
-		maxOpenConns = p_reflect.Reflect.ToUint64(configuration.MaxOpenConns)
+		maxOpenConns = go_reflect.Reflect.ToUint64(configuration.MaxOpenConns)
 	}
 	var maxIdleConns = DEFAULT_MAX_IDLE_CONNS
 	if configuration.MaxIdleConns != nil {
-		maxIdleConns = p_reflect.Reflect.ToUint64(configuration.MaxIdleConns)
+		maxIdleConns = go_reflect.Reflect.ToUint64(configuration.MaxIdleConns)
 	}
 	connMaxLifetime := DEFAULT_CONN_MAX_LIFTTIME
 	if configuration.ConnMaxLifetime != nil {
@@ -90,25 +89,25 @@ func (this *MysqlClass) ConnectWithConfiguration(configuration Configuration) {
 func (this *MysqlClass) ConnectWithMap(map_ map[string]interface{}) {
 	var port = DEFAULT_PORT
 	if map_[`port`] != nil {
-		port = p_reflect.Reflect.ToUint64(map_[`port`])
+		port = go_reflect.Reflect.ToUint64(map_[`port`])
 	}
 	var database *string
 	if map_[`database`] != nil {
-		d := p_reflect.Reflect.ToString(map_[`database`])
+		d := go_reflect.Reflect.ToString(map_[`database`])
 		database = &d
 	}
 	var maxOpenConns = DEFAULT_MAX_OPEN_CONNS
 	if map_[`maxOpenConns`] != nil {
-		maxOpenConns = p_reflect.Reflect.ToUint64(map_[`maxOpenConns`])
+		maxOpenConns = go_reflect.Reflect.ToUint64(map_[`maxOpenConns`])
 	}
 	var maxIdleConns = DEFAULT_MAX_IDLE_CONNS
 	if map_[`maxIdleConns`] != nil {
-		maxIdleConns = p_reflect.Reflect.ToUint64(map_[`maxIdleConns`])
+		maxIdleConns = go_reflect.Reflect.ToUint64(map_[`maxIdleConns`])
 	}
 	connMaxLifetime := DEFAULT_CONN_MAX_LIFTTIME
 	if map_[`connMaxLifeTime`] != nil {
 		fmt.Println(reflect.TypeOf(map_[`connMaxLifeTime`]).Kind())
-		connMaxLifetime = time.Duration(p_reflect.Reflect.ToInt64(map_[`connMaxLifeTime`])) * time.Second
+		connMaxLifetime = time.Duration(go_reflect.Reflect.ToInt64(map_[`connMaxLifeTime`])) * time.Second
 	}
 
 	this.Connect(map_[`host`].(string), port, map_[`username`].(string), map_[`password`].(string), database, maxOpenConns, maxIdleConns, connMaxLifetime)
@@ -128,7 +127,7 @@ func (this *MysqlClass) Connect(host string, port uint64, username string, passw
 		d,
 	)
 	db := sqlx.MustConnect(`mysql`, connUrl)
-	p_logger.Logger.Info(fmt.Sprintf(`mysql connect succeed. url: %s`, address))
+	go_logger.Logger.Info(fmt.Sprintf(`mysql connect succeed. url: %s`, address))
 	db.DB.SetMaxOpenConns(int(maxOpenConns))  // 用于设置最大打开的连接数，默认值为0表示不限制
 	db.DB.SetMaxIdleConns(int(maxIdleConns))  // 用于设置闲置的连接数
 	db.DB.SetConnMaxLifetime(connMaxLifetime) // 设置一个超时时间，时间小于数据库的超时时间即可
@@ -136,12 +135,12 @@ func (this *MysqlClass) Connect(host string, port uint64, username string, passw
 }
 
 func (this *MysqlClass) RawExec(sql string, values ...interface{}) (lastInsertId int64, rowsAffected int64) {
-	if p_application.Application.Debug {
+	if go_application.Application.Debug {
 		txInfo := ``
 		if this.Tx != nil {
 			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
 		}
-		p_logger.Logger.Debug(fmt.Sprintf(`%s%s, %v`, txInfo, sql, values))
+		go_logger.Logger.Debug(fmt.Sprintf(`%s%s, %v`, txInfo, sql, values))
 	}
 
 	var result sql2.Result
@@ -162,12 +161,12 @@ func (this *MysqlClass) RawExec(sql string, values ...interface{}) (lastInsertId
 }
 
 func (this *MysqlClass) RawSelect(dest interface{}, sql string, values ...interface{}) {
-	if p_application.Application.Debug {
+	if go_application.Application.Debug {
 		txInfo := ``
 		if this.Tx != nil {
 			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
 		}
-		p_logger.Logger.Debug(fmt.Sprintf(`%s%s, %v`, txInfo, sql, values))
+		go_logger.Logger.Debug(fmt.Sprintf(`%s%s, %v`, txInfo, sql, values))
 	}
 
 	var err error
@@ -213,7 +212,7 @@ func (this *MysqlClass) Sum(tableName string, sumTarget string, args ...interfac
 
 func (this *MysqlClass) SelectByMap(dest interface{}, tableName string, select_ string, where map[string]string) {
 	if select_ == `*` {
-		select_ = strings.Join(p_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
 	}
 	var paramArgs = []interface{}{}
 	sql, paramArgs := Builder.BuildSelectSql(tableName, select_, where)
@@ -222,7 +221,7 @@ func (this *MysqlClass) SelectByMap(dest interface{}, tableName string, select_ 
 
 func (this *MysqlClass) SelectFirstByMap(dest interface{}, tableName string, select_ string, where map[string]string) bool {
 	if select_ == `*` {
-		select_ = strings.Join(p_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
 	}
 	var paramArgs = []interface{}{}
 	sql, paramArgs := Builder.BuildSelectSql(tableName, select_, where)
@@ -241,7 +240,7 @@ func (this *MysqlClass) SelectColumn(columnName string, tableName string, args .
 
 func (this *MysqlClass) SelectFirst(dest interface{}, tableName string, select_ string, args ...interface{}) bool {
 	if select_ == `*` {
-		select_ = strings.Join(p_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
 	}
 	sql, paramArgs := Builder.BuildSelectSql(tableName, select_, args...)
 	return this.RawSelectFirst(dest, sql, paramArgs...)
@@ -249,7 +248,7 @@ func (this *MysqlClass) SelectFirst(dest interface{}, tableName string, select_ 
 
 func (this *MysqlClass) SelectById(dest interface{}, tableName string, select_ string, id string, forUpdate bool) bool {
 	if select_ == `*` {
-		select_ = strings.Join(p_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
 	}
 	var paramArgs = []interface{}{}
 	sql, paramArgs := Builder.BuildSelectSql(tableName, select_, map[string]string{
@@ -260,7 +259,7 @@ func (this *MysqlClass) SelectById(dest interface{}, tableName string, select_ s
 
 func (this *MysqlClass) Select(dest interface{}, tableName string, select_ string, args ...interface{}) {
 	if select_ == `*` {
-		select_ = strings.Join(p_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
 	}
 	var paramArgs = []interface{}{}
 	sql, paramArgs := Builder.BuildSelectSql(tableName, select_, args...)
@@ -288,12 +287,12 @@ func (this *MysqlClass) Update(tableName string, update interface{}, args ...int
 }
 
 func (this *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...interface{}) (notFound bool) {
-	if p_application.Application.Debug {
+	if go_application.Application.Debug {
 		txInfo := ``
 		if this.Tx != nil {
 			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
 		}
-		p_logger.Logger.Debug(fmt.Sprintf(`%s%s, %v`, txInfo, sql, values))
+		go_logger.Logger.Debug(fmt.Sprintf(`%s%s, %v`, txInfo, sql, values))
 	}
 
 	var err error
@@ -313,13 +312,13 @@ func (this *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...i
 }
 
 func (this *MysqlClass) Begin() MysqlClass {
-	id := p_random.Random.GetUniqueIdString()
-	if p_application.Application.Debug {
+	id := fmt.Sprintf(`%s`, uuid.NewV4())
+	if go_application.Application.Debug {
 		txInfo := ``
 		if this.Tx != nil {
 			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
 		}
-		p_logger.Logger.Debug(fmt.Sprintf(`%sbegin`, txInfo))
+		go_logger.Logger.Debug(fmt.Sprintf(`%sbegin`, txInfo))
 	}
 
 	return MysqlClass{
@@ -330,12 +329,12 @@ func (this *MysqlClass) Begin() MysqlClass {
 }
 
 func (this *MysqlClass) Commit() {
-	if p_application.Application.Debug {
+	if go_application.Application.Debug {
 		txInfo := ``
 		if this.Tx != nil {
 			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
 		}
-		p_logger.Logger.Debug(fmt.Sprintf(`%scommit`, txInfo))
+		go_logger.Logger.Debug(fmt.Sprintf(`%scommit`, txInfo))
 	}
 
 	err := this.Tx.Commit()
@@ -345,12 +344,12 @@ func (this *MysqlClass) Commit() {
 }
 
 func (this *MysqlClass) Rollback() {
-	if p_application.Application.Debug {
+	if go_application.Application.Debug {
 		txInfo := ``
 		if this.Tx != nil {
 			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
 		}
-		p_logger.Logger.Debug(fmt.Sprintf(`%srollback`, txInfo))
+		go_logger.Logger.Debug(fmt.Sprintf(`%srollback`, txInfo))
 	}
 
 	err := this.Tx.Rollback()
@@ -360,12 +359,12 @@ func (this *MysqlClass) Rollback() {
 }
 
 func (this *MysqlClass) RollbackWithErr() error {
-	if p_application.Application.Debug {
+	if go_application.Application.Debug {
 		txInfo := ``
 		if this.Tx != nil {
 			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
 		}
-		p_logger.Logger.Debug(fmt.Sprintf(`%srollback`, txInfo))
+		go_logger.Logger.Debug(fmt.Sprintf(`%srollback`, txInfo))
 	}
 
 	return this.Tx.Rollback()
@@ -390,7 +389,7 @@ func (this *BuilderClass) BuildInsertSql(tableName string, params interface{}) (
 			for key, val := range params.(map[string]interface{}) {
 				cols = append(cols, key)
 				vals = append(vals, `?`)
-				paramArgs = append(paramArgs, template.HTMLEscapeString(p_reflect.Reflect.ToString(val)))
+				paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
 			}
 		} else if valKind == reflect.String {
 			for key, val := range params.(map[string]string) {
@@ -399,21 +398,21 @@ func (this *BuilderClass) BuildInsertSql(tableName string, params interface{}) (
 				paramArgs = append(paramArgs, template.HTMLEscapeString(val))
 			}
 		} else {
-			p_error.ThrowInternal(`map value type error`)
+			go_error.ThrowInternal(`map value type error`)
 		}
 	} else if kind == reflect.Struct {
-		for key, val := range p_format.Format.StructToMap(params) {
+		for key, val := range go_format.Format.StructToMap(params) {
 			if val != nil {
 				if reflect.TypeOf(val).Kind() != reflect.String {
-					p_error.ThrowInternal(`struct value type error`)
+					go_error.ThrowInternal(`struct value type error`)
 				}
 				cols = append(cols, key)
 				vals = append(vals, `?`)
-				paramArgs = append(paramArgs, template.HTMLEscapeString(p_reflect.Reflect.ToString(val)))
+				paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
 			}
 		}
 	} else {
-		p_error.ThrowInternal(`type error`)
+		go_error.ThrowInternal(`type error`)
 	}
 
 	str := fmt.Sprintf(
@@ -463,16 +462,16 @@ func (this *BuilderClass) buildWhereAndFromMapInterface(paramArgs *[]interface{}
 		kind := reflect.TypeOf(val).Kind()
 		if kind == reflect.Slice {
 			val_ := val.([]interface{})
-			andStr = andStr + key + ` ` + p_reflect.Reflect.ToString(val_[0]) + ` ? and `
-			tempParamArgs = append(tempParamArgs, template.HTMLEscapeString(p_reflect.Reflect.ToString(val_[1])))
+			andStr = andStr + key + ` ` + go_reflect.Reflect.ToString(val_[0]) + ` ? and `
+			tempParamArgs = append(tempParamArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val_[1])))
 		} else {
-			valStr := template.HTMLEscapeString(p_reflect.Reflect.ToString(val))
+			valStr := template.HTMLEscapeString(go_reflect.Reflect.ToString(val))
 			andStr = andStr + key + ` = ? and `
 			tempParamArgs = append(tempParamArgs, valStr)
 		}
 	}
 	if len(andStr) > 4 {
-		andStr = p_string.String.RemoveLast(andStr, 5)
+		andStr = andStr[:len(andStr)-5]
 	}
 	*paramArgs = tempParamArgs
 	return andStr
@@ -487,7 +486,7 @@ func (this *BuilderClass) buildWhereAndFromMapString(paramArgs *[]interface{}, e
 		tempParamArgs = append(tempParamArgs, valStr)
 	}
 	if len(andStr) > 4 {
-		andStr = p_string.String.RemoveLast(andStr, 5)
+		andStr = andStr[:len(andStr)-5]
 	}
 	*paramArgs = tempParamArgs
 	return andStr
@@ -508,25 +507,25 @@ func (this *BuilderClass) buildWhere(paramArgs *[]interface{}, where interface{}
 		} else if valKind == reflect.String {
 			addStr = this.buildWhereAndFromMapString(paramArgs, where.(map[string]string))
 		} else {
-			p_error.ThrowInternal(`map value type error`)
+			go_error.ThrowInternal(`map value type error`)
 		}
 		whereStr += addStr
 	} else if kind == reflect.Struct {
-		for key, val := range p_format.Format.StructToMap(where) {
+		for key, val := range go_format.Format.StructToMap(where) {
 			if val != nil {
 				if reflect.TypeOf(val).Kind() != reflect.String {
-					p_error.ThrowInternal(`struct value type error`)
+					go_error.ThrowInternal(`struct value type error`)
 				}
-				valStr := template.HTMLEscapeString(p_reflect.Reflect.ToString(val))
+				valStr := template.HTMLEscapeString(go_reflect.Reflect.ToString(val))
 				whereStr = whereStr + key + `= "` + valStr + `" and `
 			}
 		}
 		if len(whereStr) > 4 {
-			whereStr = p_string.String.RemoveLast(whereStr, 5)
+			whereStr = whereStr[:len(whereStr)-5]
 		}
 	} else if kind == reflect.Slice {
 		if type_.Elem().Kind() != reflect.Map {
-			p_error.ThrowInternal(`slice value type error`)
+			go_error.ThrowInternal(`slice value type error`)
 		}
 		mapKind := type_.Elem().Elem().Kind()
 		if mapKind == reflect.Interface {
@@ -535,13 +534,13 @@ func (this *BuilderClass) buildWhere(paramArgs *[]interface{}, where interface{}
 				whereStr += `(` + this.buildWhereAndFromMapInterface(paramArgs, ele) + `) or `
 			}
 		} else {
-			p_error.ThrowInternal(`map value type error`)
+			go_error.ThrowInternal(`map value type error`)
 		}
 		if len(whereStr) > 3 {
-			whereStr = p_string.String.RemoveLast(whereStr, 4)
+			whereStr = whereStr[:len(whereStr)-4]
 		}
 	} else {
-		p_error.ThrowInternal(`type error`)
+		go_error.ThrowInternal(`type error`)
 	}
 	return whereStr
 }
@@ -593,7 +592,7 @@ func (this *BuilderClass) BuildUpdateSql(tableName string, update interface{}, a
 					updateStr = updateStr + key + ` = NULL,`
 				} else {
 					updateStr = updateStr + key + ` = ?,`
-					paramArgs = append(paramArgs, template.HTMLEscapeString(p_reflect.Reflect.ToString(val)))
+					paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
 				}
 			}
 		} else if valKind == reflect.String {
@@ -606,23 +605,23 @@ func (this *BuilderClass) BuildUpdateSql(tableName string, update interface{}, a
 				}
 			}
 		} else {
-			p_error.ThrowInternal(`map value type error`)
+			go_error.ThrowInternal(`map value type error`)
 		}
 	} else if updateKind == reflect.Struct {
-		for key, val := range p_format.Format.StructToMap(update) {
+		for key, val := range go_format.Format.StructToMap(update) {
 			if val != nil {
 				if reflect.TypeOf(val).Kind() != reflect.String {
-					p_error.ThrowInternal(`struct value type error`)
+					go_error.ThrowInternal(`struct value type error`)
 				}
 				updateStr = updateStr + key + ` = ?,`
-				paramArgs = append(paramArgs, template.HTMLEscapeString(p_reflect.Reflect.ToString(val)))
+				paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
 			}
 		}
 	} else {
-		p_error.ThrowInternal(`type error`)
+		go_error.ThrowInternal(`type error`)
 	}
 	if len(updateStr) > 0 {
-		updateStr = p_string.String.RemoveLast(updateStr, 1)
+		updateStr = updateStr[:len(updateStr)-1]
 	}
 
 	var whereStr = ``
