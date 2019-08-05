@@ -35,6 +35,8 @@ var (
 	DEFAULT_CONN_MAX_LIFTTIME        = 6 * time.Second
 )
 
+var MysqlHelper = MysqlClass{}
+
 // ----------------------------- MysqlClass -----------------------------
 
 type MysqlClass struct {
