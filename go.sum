@@ -25,8 +25,10 @@ github.com/pefish/go-error v0.2.0 h1:WNJX9EpOlfhqc8OX/FuLDcgZ+ccDRXdQbikOiMmF9Q8
 github.com/pefish/go-error v0.2.0/go.mod h1:J+uA2hCnHSIbZgezmjvmWBizZTnmFhL5hOIXUqfx+BA=
 github.com/pefish/go-logger v0.1.0 h1:R/UAbQUcA33rgDrZKx/vaSbZpEeeA9QKSvda5U5CTQU=
 github.com/pefish/go-logger v0.1.0/go.mod h1:SXHrRdqbyQV4CY59b1vEIEHrcmMquCSEA4s+Co/9K2c=
+github.com/pefish/go-logger v0.1.1/go.mod h1:pu8flBTdh7I69I6y6W0NXTQWuExsoA+9y2g+R/NeE3M=
 github.com/pefish/go-reflect v0.0.3 h1:VybCShzI0EbvlcqaebdlqEC/F5fP8beRuNpr/Ia+cr8=
 github.com/pefish/go-reflect v0.0.3/go.mod h1:lv3gz/Zh2FsqCq8jqzdCgYpoM41AjE90HtknRbkXhjQ=
+github.com/pefish/go-reflect v0.0.4/go.mod h1:lv3gz/Zh2FsqCq8jqzdCgYpoM41AjE90HtknRbkXhjQ=
 github.com/pefish/log4go v1.0.7 h1:CB0X19K4JMfgiYQxRr+erLQ/UCySOovix6ggAUU8nwo=
 github.com/pefish/log4go v1.0.7/go.mod h1:KL8EqYldvXxpBlUSZgR2H4tjBvVqiWgQtMg56LiZetY=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
