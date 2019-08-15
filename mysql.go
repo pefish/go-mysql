@@ -269,12 +269,26 @@ func (this *MysqlClass) Select(dest interface{}, tableName string, select_ strin
 }
 
 func (this *MysqlClass) InsertByMap(tableName string, params map[string]string) (lastInsertId int64, rowsAffected int64) {
-	sql, paramArgs := Builder.BuildInsertSql(tableName, params)
+	sql, paramArgs := Builder.BuildInsertSql(tableName, params, BuildInsertSqlOpt{})
 	return this.RawExec(sql, paramArgs...)
 }
 
 func (this *MysqlClass) Insert(tableName string, params interface{}) (lastInsertId int64, rowsAffected int64) {
-	sql, paramArgs := Builder.BuildInsertSql(tableName, params)
+	sql, paramArgs := Builder.BuildInsertSql(tableName, params, BuildInsertSqlOpt{})
+	return this.RawExec(sql, paramArgs...)
+}
+
+func (this *MysqlClass) InsertIgnore(tableName string, params interface{}) (lastInsertId int64, rowsAffected int64) {
+	sql, paramArgs := Builder.BuildInsertSql(tableName, params, BuildInsertSqlOpt{
+		InsertIgnore: true,
+	})
+	return this.RawExec(sql, paramArgs...)
+}
+
+func (this *MysqlClass) ReplaceInto(tableName string, params interface{}) (lastInsertId int64, rowsAffected int64) {
+	sql, paramArgs := Builder.BuildInsertSql(tableName, params, BuildInsertSqlOpt{
+		ReplaceInto: true,
+	})
 	return this.RawExec(sql, paramArgs...)
 }
 
@@ -379,7 +393,11 @@ type BuilderClass struct {
 
 var Builder = BuilderClass{}
 
-func (this *BuilderClass) BuildInsertSql(tableName string, params interface{}) (string, []interface{}) {
+type BuildInsertSqlOpt struct {
+	InsertIgnore bool
+	ReplaceInto bool
+}
+func (this *BuilderClass) BuildInsertSql(tableName string, params interface{}, opt BuildInsertSqlOpt) (string, []interface{}) {
 	var cols []string
 	var vals []string
 	var paramArgs = []interface{}{}
@@ -417,8 +435,15 @@ func (this *BuilderClass) BuildInsertSql(tableName string, params interface{}) (
 		go_error.ThrowInternal(`type error`)
 	}
 
+	insertStr := `insert`
+	if opt.InsertIgnore == true {
+		insertStr += ` ignore`
+	} else if opt.ReplaceInto == true {
+		insertStr = `replace into`
+	}
 	str := fmt.Sprintf(
-		`insert into %s (%s) values (%s)`,
+		`%s into %s (%s) values (%s)`,
+		insertStr,
 		tableName,
 		strings.Join(cols, `,`),
 		strings.Join(vals, `,`),
