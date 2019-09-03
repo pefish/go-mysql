@@ -248,6 +248,19 @@ func (this *MysqlClass) SelectFirst(dest interface{}, tableName string, select_ 
 	return this.RawSelectFirst(dest, sql, paramArgs...)
 }
 
+func (this *MysqlClass) SelectFirstByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) bool {
+	if select_ == `*` {
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+	}
+	sql := fmt.Sprintf(
+		`select %s from %s %s`,
+		select_,
+		tableName,
+		str,
+	)
+	return this.RawSelectFirst(dest, sql, values...)
+}
+
 func (this *MysqlClass) SelectById(dest interface{}, tableName string, select_ string, id string, forUpdate bool) bool {
 	if select_ == `*` {
 		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
@@ -266,6 +279,19 @@ func (this *MysqlClass) Select(dest interface{}, tableName string, select_ strin
 	var paramArgs = []interface{}{}
 	sql, paramArgs := Builder.BuildSelectSql(tableName, select_, args...)
 	this.RawSelect(dest, sql, paramArgs...)
+}
+
+func (this *MysqlClass) SelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) {
+	if select_ == `*` {
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+	}
+	sql := fmt.Sprintf(
+		`select %s from %s %s`,
+		select_,
+		tableName,
+		str,
+	)
+	this.RawSelect(dest, sql, values...)
 }
 
 func (this *MysqlClass) InsertByMap(tableName string, params map[string]string) (lastInsertId int64, rowsAffected int64) {
