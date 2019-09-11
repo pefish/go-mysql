@@ -6,7 +6,7 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pefish/go-application v0.1.0
 	github.com/pefish/go-error v0.2.0
-	github.com/pefish/go-logger v0.1.1
+	github.com/pefish/go-logger v0.1.9
 	github.com/pefish/go-reflect v0.0.4
 	github.com/satori/go.uuid v1.2.0
 	google.golang.org/appengine v1.4.0 // indirect
