@@ -25,7 +25,7 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 		`c`: `hfhd`,
 	}, []map[string]interface{}{
 		{
-			`b`: 65,
+			`b`:    65,
 			`bghf`: `352352`,
 		},
 		{
@@ -35,10 +35,31 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 	fmt.Println(sql, params)
 }
 
+func TestBuilderClass_BuildWhere(t *testing.T) {
+	builder := BuilderClass{}
+	args, sql := builder.BuildWhere(map[string]interface{}{
+		`a`: 123,
+		`c`: `hfhd`,
+		`b`: nil,
+	})
+	fmt.Println(sql, args)
+
+	args1, sql1 := builder.BuildWhere(struct {
+		A string  `json:"a"`
+		B string  `json:"b"`
+		C *string `json:"c"`
+	}{
+		A: `35`,
+		B: `765`,
+		C: nil,
+	})
+	fmt.Println(sql1, args1)
+}
+
 func TestMysqlClass_ConnectWithConfiguration(t *testing.T) {
 	mysqlClint := MysqlClass{}
 	mysqlClint.ConnectWithConfiguration(Configuration{
-		Host: `127.0.0.1`,
+		Host:     `127.0.0.1`,
 		Username: `root`,
 		Password: `root`,
 	})
@@ -48,9 +69,9 @@ func TestMysqlClass_ConnectWithConfiguration(t *testing.T) {
 func TestMysqlClass_ConnectWithMap(t *testing.T) {
 	mysqlClint := MysqlClass{}
 	mysqlClint.ConnectWithMap(map[string]interface{}{
-		`host`: `127.0.0.1`,
-		`username`: `root`,
-		`password`: `root`,
+		`host`:            `127.0.0.1`,
+		`username`:        `root`,
+		`password`:        `root`,
 		`connMaxLifeTime`: 10,
 	})
 	mysqlClint.Close()

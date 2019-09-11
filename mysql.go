@@ -481,7 +481,7 @@ func (this *BuilderClass) BuildCountSql(tableName string, args ...interface{}) (
 	var whereStr = ``
 	var paramArgs = []interface{}{}
 	if len(args) > 0 && args[0] != nil {
-		whereStr = this.buildWhere(&paramArgs, args[0])
+		paramArgs, whereStr = this.BuildWhere(args[0])
 	}
 
 	str := fmt.Sprintf(
@@ -496,7 +496,7 @@ func (this *BuilderClass) BuildSumSql(tableName string, sumTarget string, args .
 	var whereStr = ``
 	var paramArgs = []interface{}{}
 	if len(args) > 0 && args[0] != nil {
-		whereStr = this.buildWhere(&paramArgs, args[0])
+		paramArgs, whereStr = this.BuildWhere(args[0])
 	}
 
 	str := fmt.Sprintf(
@@ -508,10 +508,13 @@ func (this *BuilderClass) BuildSumSql(tableName string, sumTarget string, args .
 	return str, paramArgs
 }
 
-func (this *BuilderClass) buildWhereAndFromMapInterface(paramArgs *[]interface{}, ele map[string]interface{}) string {
+func (this *BuilderClass) buildWhereFromMapInterface(ele map[string]interface{}) ([]interface{}, string) {
 	andStr := ``
-	tempParamArgs := *paramArgs
+	tempParamArgs := []interface{}{}
 	for key, val := range ele {
+		if val == nil {
+			continue
+		}
 		kind := reflect.TypeOf(val).Kind()
 		if kind == reflect.Slice {
 			val_ := val.([]interface{})
@@ -526,83 +529,38 @@ func (this *BuilderClass) buildWhereAndFromMapInterface(paramArgs *[]interface{}
 	if len(andStr) > 4 {
 		andStr = andStr[:len(andStr)-5]
 	}
-	*paramArgs = tempParamArgs
-	return andStr
+	return tempParamArgs, andStr
 }
 
-func (this *BuilderClass) buildWhereAndFromMapString(paramArgs *[]interface{}, ele map[string]string) string {
-	andStr := ``
-	tempParamArgs := *paramArgs
-	for key, val := range ele {
-		valStr := template.HTMLEscapeString(val)
-		andStr = andStr + key + ` = ? and `
-		tempParamArgs = append(tempParamArgs, valStr)
-	}
-	if len(andStr) > 4 {
-		andStr = andStr[:len(andStr)-5]
-	}
-	*paramArgs = tempParamArgs
-	return andStr
-}
-
-func (this *BuilderClass) buildWhere(paramArgs *[]interface{}, where interface{}) string {
+func (this *BuilderClass) BuildWhere(where interface{}) ([]interface{}, string) {
 	whereStr := `where `
 	type_ := reflect.TypeOf(where)
 	kind := type_.Kind()
+	paramArgs := []interface{}{}
 	if kind == reflect.String {
-		return where.(string)
+		return paramArgs, where.(string)
 	}
+	str := ``
 	if kind == reflect.Map {
-		addStr := ``
 		valKind := type_.Elem().Kind()
 		if valKind == reflect.Interface {
-			addStr = this.buildWhereAndFromMapInterface(paramArgs, where.(map[string]interface{}))
-		} else if valKind == reflect.String {
-			addStr = this.buildWhereAndFromMapString(paramArgs, where.(map[string]string))
+			paramArgs, str = this.buildWhereFromMapInterface(where.(map[string]interface{}))
 		} else {
 			go_error.ThrowInternal(`map value type error`)
 		}
-		whereStr += addStr
 	} else if kind == reflect.Struct {
-		for key, val := range this.structToMap(where) {
-			if val != nil {
-				if reflect.TypeOf(val).Kind() != reflect.String {
-					go_error.ThrowInternal(`struct value type error`)
-				}
-				valStr := template.HTMLEscapeString(go_reflect.Reflect.ToString(val))
-				whereStr = whereStr + key + `= "` + valStr + `" and `
-			}
-		}
-		if len(whereStr) > 4 {
-			whereStr = whereStr[:len(whereStr)-5]
-		}
-	} else if kind == reflect.Slice {
-		if type_.Elem().Kind() != reflect.Map {
-			go_error.ThrowInternal(`slice value type error`)
-		}
-		mapKind := type_.Elem().Elem().Kind()
-		if mapKind == reflect.Interface {
-			sliceVal := where.([]map[string]interface{})
-			for _, ele := range sliceVal {
-				whereStr += `(` + this.buildWhereAndFromMapInterface(paramArgs, ele) + `) or `
-			}
-		} else {
-			go_error.ThrowInternal(`map value type error`)
-		}
-		if len(whereStr) > 3 {
-			whereStr = whereStr[:len(whereStr)-4]
-		}
+		paramArgs, str = this.buildWhereFromMapInterface(this.structToMap(where))
 	} else {
-		go_error.ThrowInternal(`type error`)
+		go_error.ThrowInternal(`where type error`)
 	}
-	return whereStr
+	return paramArgs, whereStr + str
 }
 
 func (this *BuilderClass) BuildSelectSql(tableName string, select_ string, args ...interface{}) (string, []interface{}) {
 	var whereStr = ``
 	var paramArgs = []interface{}{}
 	if len(args) > 0 && args[0] != nil {
-		whereStr = this.buildWhere(&paramArgs, args[0])
+		paramArgs, whereStr = this.BuildWhere(args[0])
 	}
 
 	orderByStr := ``
@@ -689,7 +647,7 @@ func (this *BuilderClass) BuildUpdateSql(tableName string, update interface{}, a
 
 	var whereStr = ``
 	if len(args) > 0 && args[0] != nil {
-		whereStr = this.buildWhere(&paramArgs, args[0])
+		paramArgs, whereStr = this.BuildWhere(args[0])
 	}
 
 	str := fmt.Sprintf(
