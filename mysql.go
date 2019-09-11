@@ -421,8 +421,9 @@ var Builder = BuilderClass{}
 
 type BuildInsertSqlOpt struct {
 	InsertIgnore bool
-	ReplaceInto bool
+	ReplaceInto  bool
 }
+
 func (this *BuilderClass) BuildInsertSql(tableName string, params interface{}, opt BuildInsertSqlOpt) (string, []interface{}) {
 	var cols []string
 	var vals []string
@@ -433,29 +434,24 @@ func (this *BuilderClass) BuildInsertSql(tableName string, params interface{}, o
 		valKind := type_.Elem().Kind()
 		if valKind == reflect.Interface {
 			for key, val := range params.(map[string]interface{}) {
+				if val == nil {
+					continue
+				}
 				cols = append(cols, key)
 				vals = append(vals, `?`)
 				paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
-			}
-		} else if valKind == reflect.String {
-			for key, val := range params.(map[string]string) {
-				cols = append(cols, key)
-				vals = append(vals, `?`)
-				paramArgs = append(paramArgs, template.HTMLEscapeString(val))
 			}
 		} else {
 			go_error.ThrowInternal(`map value type error`)
 		}
 	} else if kind == reflect.Struct {
 		for key, val := range this.structToMap(params) {
-			if val != nil {
-				if reflect.TypeOf(val).Kind() != reflect.String {
-					go_error.ThrowInternal(`struct value type error`)
-				}
-				cols = append(cols, key)
-				vals = append(vals, `?`)
-				paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
+			if val == nil {
+				continue
 			}
+			cols = append(cols, key)
+			vals = append(vals, `?`)
+			paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
 		}
 	} else {
 		go_error.ThrowInternal(`type error`)
@@ -550,6 +546,24 @@ func (this *BuilderClass) BuildWhere(where interface{}) ([]interface{}, string) 
 		}
 	} else if kind == reflect.Struct {
 		paramArgs, str = this.buildWhereFromMapInterface(this.structToMap(where))
+	} else if kind == reflect.Slice { // or
+		if type_.Elem().Kind() != reflect.Map {
+			go_error.ThrowInternal(`slice value type error`)
+		}
+		mapKind := type_.Elem().Elem().Kind()
+		if mapKind == reflect.Interface {
+			sliceVal := where.([]map[string]interface{})
+			for _, ele := range sliceVal {
+				paramArgsTemp, str := this.buildWhereFromMapInterface(ele)
+				paramArgs = append(paramArgs, paramArgsTemp...)
+				whereStr += `(` + str + `) or `
+			}
+		} else {
+			go_error.ThrowInternal(`map value type error`)
+		}
+		if len(whereStr) > 3 {
+			whereStr = whereStr[:len(whereStr)-4]
+		}
 	} else {
 		go_error.ThrowInternal(`where type error`)
 	}
@@ -596,7 +610,10 @@ func (this *BuilderClass) structToMap(in_ interface{}) map[string]interface{} {
 	if err != nil {
 		panic(err)
 	}
-	json.Unmarshal(inrec, &result)
+	err = json.Unmarshal(inrec, &result)
+	if err != nil {
+		panic(err)
+	}
 	return result
 }
 
@@ -609,34 +626,22 @@ func (this *BuilderClass) BuildUpdateSql(tableName string, update interface{}, a
 		valKind := type_.Elem().Kind()
 		if valKind == reflect.Interface {
 			for key, val := range update.(map[string]interface{}) {
-				if val == `NULL` {
-					updateStr = updateStr + key + ` = NULL,`
-				} else {
-					updateStr = updateStr + key + ` = ?,`
-					paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
+				if val == nil {
+					continue
 				}
-			}
-		} else if valKind == reflect.String {
-			for key, val := range update.(map[string]string) {
-				if val == `NULL` {
-					updateStr = updateStr + key + ` = NULL,`
-				} else {
-					updateStr = updateStr + key + ` = ?,`
-					paramArgs = append(paramArgs, template.HTMLEscapeString(val))
-				}
+				updateStr = updateStr + key + ` = ?,`
+				paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
 			}
 		} else {
 			go_error.ThrowInternal(`map value type error`)
 		}
 	} else if updateKind == reflect.Struct {
 		for key, val := range this.structToMap(update) {
-			if val != nil {
-				if reflect.TypeOf(val).Kind() != reflect.String {
-					go_error.ThrowInternal(`struct value type error`)
-				}
-				updateStr = updateStr + key + ` = ?,`
-				paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
+			if val == nil {
+				continue
 			}
+			updateStr = updateStr + key + ` = ?,`
+			paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
 		}
 	} else {
 		go_error.ThrowInternal(`type error`)
@@ -647,7 +652,9 @@ func (this *BuilderClass) BuildUpdateSql(tableName string, update interface{}, a
 
 	var whereStr = ``
 	if len(args) > 0 && args[0] != nil {
-		paramArgs, whereStr = this.BuildWhere(args[0])
+		paramArgsTemp, whereStrTemp := this.BuildWhere(args[0])
+		paramArgs = append(paramArgs, paramArgsTemp...)
+		whereStr = whereStrTemp
 	}
 
 	str := fmt.Sprintf(

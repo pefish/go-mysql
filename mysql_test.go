@@ -35,6 +35,47 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 	fmt.Println(sql, params)
 }
 
+func TestBuilderClass_BuildSelectSql(t *testing.T) {
+	builder := BuilderClass{}
+	sql, params := builder.BuildSelectSql(`table`, `*`, []map[string]interface{}{
+		{
+			`b`:    65,
+			`bghf`: `352352`,
+		},
+		{
+			`bnn`: `345`,
+		},
+	})
+	fmt.Println(sql, params)
+}
+
+func TestBuilderClass_BuildInsertSql(t *testing.T) {
+	builder := BuilderClass{}
+	sql, params := builder.BuildInsertSql(`table`, map[string]interface{}{
+		`a`: 123,
+		`c`: `hfhd`,
+	}, BuildInsertSqlOpt{})
+	fmt.Println(sql, params)
+}
+
+func TestBuilderClass_BuildCountSql(t *testing.T) {
+	builder := BuilderClass{}
+	sql, params := builder.BuildCountSql(`table`, map[string]interface{}{
+		`a`: 123,
+		`c`: `hfhd`,
+	})
+	fmt.Println(sql, params)
+}
+
+func TestBuilderClass_BuildSumSql(t *testing.T) {
+	builder := BuilderClass{}
+	sql, params := builder.BuildSumSql(`table`, `aa`, map[string]interface{}{
+		`a`: 123,
+		`c`: `hfhd`,
+	})
+	fmt.Println(sql, params)
+}
+
 func TestBuilderClass_BuildWhere(t *testing.T) {
 	builder := BuilderClass{}
 	args, sql := builder.BuildWhere(map[string]interface{}{
