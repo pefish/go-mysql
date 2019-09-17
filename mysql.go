@@ -121,6 +121,7 @@ func (this *MysqlClass) Connect(host string, port uint64, username string, passw
 		d = *database
 	}
 	address := fmt.Sprintf(`%s:%d`, host, port)
+	go_logger.Logger.Info(fmt.Sprintf(`mysql connecting... url: %s`, address))
 	connUrl := fmt.Sprintf(
 		`%s:%s@tcp(%s)/%s?charset=utf8&parseTime=true&multiStatements=true&loc=UTC`,
 		username,
