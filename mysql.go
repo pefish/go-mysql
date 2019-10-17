@@ -6,7 +6,6 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	"github.com/pefish/go-application"
 	"github.com/pefish/go-error"
 	"github.com/pefish/go-logger"
 	"github.com/pefish/go-reflect"
@@ -137,14 +136,16 @@ func (this *MysqlClass) Connect(host string, port uint64, username string, passw
 	this.Db = db
 }
 
-func (this *MysqlClass) RawExec(sql string, values ...interface{}) (lastInsertId int64, rowsAffected int64) {
-	if go_application.Application.Debug {
-		txInfo := ``
-		if this.Tx != nil {
-			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
-		}
-		go_logger.Logger.Debug(fmt.Sprintf(`%s%s, %v`, txInfo, sql, values))
+func (this *MysqlClass) printDebugInfo(sql string, values interface{}) {
+	txInfo := ``
+	if this.Tx != nil {
+		txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
 	}
+	go_logger.Logger.Debug(fmt.Sprintf(`%s%s, %v`, txInfo, sql, values))
+}
+
+func (this *MysqlClass) RawExec(sql string, values ...interface{}) (lastInsertId int64, rowsAffected int64) {
+	this.printDebugInfo(sql, values)
 
 	var result sql2.Result
 	if this.Tx != nil {
@@ -164,13 +165,7 @@ func (this *MysqlClass) RawExec(sql string, values ...interface{}) (lastInsertId
 }
 
 func (this *MysqlClass) RawSelect(dest interface{}, sql string, values ...interface{}) {
-	if go_application.Application.Debug {
-		txInfo := ``
-		if this.Tx != nil {
-			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
-		}
-		go_logger.Logger.Debug(fmt.Sprintf(`%s%s, %v`, txInfo, sql, values))
-	}
+	this.printDebugInfo(sql, values)
 
 	var err error
 	if this.Tx != nil {
@@ -330,13 +325,7 @@ func (this *MysqlClass) Update(tableName string, update interface{}, args ...int
 }
 
 func (this *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...interface{}) (notFound bool) {
-	if go_application.Application.Debug {
-		txInfo := ``
-		if this.Tx != nil {
-			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
-		}
-		go_logger.Logger.Debug(fmt.Sprintf(`%s%s, %v`, txInfo, sql, values))
-	}
+	this.printDebugInfo(sql, values)
 
 	var err error
 	if this.Tx != nil {
@@ -356,13 +345,7 @@ func (this *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...i
 
 func (this *MysqlClass) Begin() MysqlClass {
 	id := fmt.Sprintf(`%s`, uuid.NewV4())
-	if go_application.Application.Debug {
-		txInfo := ``
-		if this.Tx != nil {
-			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
-		}
-		go_logger.Logger.Debug(fmt.Sprintf(`%sbegin`, txInfo))
-	}
+	this.printDebugInfo(`begin`, nil)
 
 	return MysqlClass{
 		Db:   nil,
@@ -372,13 +355,7 @@ func (this *MysqlClass) Begin() MysqlClass {
 }
 
 func (this *MysqlClass) Commit() {
-	if go_application.Application.Debug {
-		txInfo := ``
-		if this.Tx != nil {
-			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
-		}
-		go_logger.Logger.Debug(fmt.Sprintf(`%scommit`, txInfo))
-	}
+	this.printDebugInfo(`commit`, nil)
 
 	err := this.Tx.Commit()
 	if err != nil {
@@ -387,13 +364,7 @@ func (this *MysqlClass) Commit() {
 }
 
 func (this *MysqlClass) Rollback() {
-	if go_application.Application.Debug {
-		txInfo := ``
-		if this.Tx != nil {
-			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
-		}
-		go_logger.Logger.Debug(fmt.Sprintf(`%srollback`, txInfo))
-	}
+	this.printDebugInfo(`rollback`, nil)
 
 	err := this.Tx.Rollback()
 	if err != nil {
@@ -402,13 +373,7 @@ func (this *MysqlClass) Rollback() {
 }
 
 func (this *MysqlClass) RollbackWithErr() error {
-	if go_application.Application.Debug {
-		txInfo := ``
-		if this.Tx != nil {
-			txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
-		}
-		go_logger.Logger.Debug(fmt.Sprintf(`%srollback`, txInfo))
-	}
+	this.printDebugInfo(`rollback`, nil)
 
 	return this.Tx.Rollback()
 }
