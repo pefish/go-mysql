@@ -144,7 +144,27 @@ func (this *MysqlClass) printDebugInfo(sql string, values interface{}) {
 	go_logger.Logger.Debug(fmt.Sprintf(`%s%s, %v`, txInfo, sql, values))
 }
 
+func (this *MysqlClass) processValues(sql string, values []interface{}) (string, []interface{}) {
+	hasArr := false
+	for _, v := range values {
+		rt := reflect.TypeOf(v)
+		if rt.Kind() == reflect.Array || rt.Kind() == reflect.Slice {
+			hasArr = true
+			break
+		}
+	}
+	if hasArr {
+		var err error
+		sql, values, err = sqlx.In(sql, values...)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return sql, values
+}
+
 func (this *MysqlClass) RawExec(sql string, values ...interface{}) (lastInsertId int64, rowsAffected int64) {
+	sql, values = this.processValues(sql, values)
 	this.printDebugInfo(sql, values)
 
 	var result sql2.Result
@@ -165,6 +185,7 @@ func (this *MysqlClass) RawExec(sql string, values ...interface{}) (lastInsertId
 }
 
 func (this *MysqlClass) RawSelect(dest interface{}, sql string, values ...interface{}) {
+	sql, values = this.processValues(sql, values)
 	this.printDebugInfo(sql, values)
 
 	var err error
@@ -325,6 +346,7 @@ func (this *MysqlClass) Update(tableName string, update interface{}, args ...int
 }
 
 func (this *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...interface{}) (notFound bool) {
+	sql, values = this.processValues(sql, values)
 	this.printDebugInfo(sql, values)
 
 	var err error
