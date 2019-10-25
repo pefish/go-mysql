@@ -64,20 +64,20 @@ func (this *MysqlClass) Close() {
 func (this *MysqlClass) ConnectWithConfiguration(configuration Configuration) {
 	var port = DEFAULT_PORT
 	if configuration.Port != nil {
-		port = go_reflect.Reflect.ToUint64(configuration.Port)
+		port = go_reflect.Reflect.MustToUint64(configuration.Port)
 	}
 	var database *string
 	if configuration.Database != nil {
-		d := go_reflect.Reflect.ToString(configuration.Database)
+		d := go_reflect.Reflect.MustToString(configuration.Database)
 		database = &d
 	}
 	var maxOpenConns = DEFAULT_MAX_OPEN_CONNS
 	if configuration.MaxOpenConns != nil {
-		maxOpenConns = go_reflect.Reflect.ToUint64(configuration.MaxOpenConns)
+		maxOpenConns = go_reflect.Reflect.MustToUint64(configuration.MaxOpenConns)
 	}
 	var maxIdleConns = DEFAULT_MAX_IDLE_CONNS
 	if configuration.MaxIdleConns != nil {
-		maxIdleConns = go_reflect.Reflect.ToUint64(configuration.MaxIdleConns)
+		maxIdleConns = go_reflect.Reflect.MustToUint64(configuration.MaxIdleConns)
 	}
 	connMaxLifetime := DEFAULT_CONN_MAX_LIFTTIME
 	if configuration.ConnMaxLifetime != nil {
@@ -90,25 +90,25 @@ func (this *MysqlClass) ConnectWithConfiguration(configuration Configuration) {
 func (this *MysqlClass) ConnectWithMap(map_ map[string]interface{}) {
 	var port = DEFAULT_PORT
 	if map_[`port`] != nil {
-		port = go_reflect.Reflect.ToUint64(map_[`port`])
+		port = go_reflect.Reflect.MustToUint64(map_[`port`])
 	}
 	var database *string
 	if map_[`database`] != nil {
-		d := go_reflect.Reflect.ToString(map_[`database`])
+		d := go_reflect.Reflect.MustToString(map_[`database`])
 		database = &d
 	}
 	var maxOpenConns = DEFAULT_MAX_OPEN_CONNS
 	if map_[`maxOpenConns`] != nil {
-		maxOpenConns = go_reflect.Reflect.ToUint64(map_[`maxOpenConns`])
+		maxOpenConns = go_reflect.Reflect.MustToUint64(map_[`maxOpenConns`])
 	}
 	var maxIdleConns = DEFAULT_MAX_IDLE_CONNS
 	if map_[`maxIdleConns`] != nil {
-		maxIdleConns = go_reflect.Reflect.ToUint64(map_[`maxIdleConns`])
+		maxIdleConns = go_reflect.Reflect.MustToUint64(map_[`maxIdleConns`])
 	}
 	connMaxLifetime := DEFAULT_CONN_MAX_LIFTTIME
 	if map_[`connMaxLifeTime`] != nil {
 		fmt.Println(reflect.TypeOf(map_[`connMaxLifeTime`]).Kind())
-		connMaxLifetime = time.Duration(go_reflect.Reflect.ToInt64(map_[`connMaxLifeTime`])) * time.Second
+		connMaxLifetime = time.Duration(go_reflect.Reflect.MustToInt64(map_[`connMaxLifeTime`])) * time.Second
 	}
 
 	this.Connect(map_[`host`].(string), port, map_[`username`].(string), map_[`password`].(string), database, maxOpenConns, maxIdleConns, connMaxLifetime)
@@ -427,7 +427,7 @@ func (this *BuilderClass) BuildInsertSql(tableName string, params interface{}, o
 				}
 				cols = append(cols, key)
 				vals = append(vals, `?`)
-				paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
+				paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.MustToString(val)))
 			}
 		} else {
 			go_error.ThrowInternal(`map value type error`)
@@ -439,7 +439,7 @@ func (this *BuilderClass) BuildInsertSql(tableName string, params interface{}, o
 			}
 			cols = append(cols, key)
 			vals = append(vals, `?`)
-			paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
+			paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.MustToString(val)))
 		}
 	} else {
 		go_error.ThrowInternal(`type error`)
@@ -502,10 +502,10 @@ func (this *BuilderClass) buildWhereFromMapInterface(ele map[string]interface{})
 		kind := reflect.TypeOf(val).Kind()
 		if kind == reflect.Slice {
 			val_ := val.([]interface{})
-			andStr = andStr + key + ` ` + go_reflect.Reflect.ToString(val_[0]) + ` ? and `
-			tempParamArgs = append(tempParamArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val_[1])))
+			andStr = andStr + key + ` ` + go_reflect.Reflect.MustToString(val_[0]) + ` ? and `
+			tempParamArgs = append(tempParamArgs, template.HTMLEscapeString(go_reflect.Reflect.MustToString(val_[1])))
 		} else {
-			valStr := template.HTMLEscapeString(go_reflect.Reflect.ToString(val))
+			valStr := template.HTMLEscapeString(go_reflect.Reflect.MustToString(val))
 			andStr = andStr + key + ` = ? and `
 			tempParamArgs = append(tempParamArgs, valStr)
 		}
@@ -618,7 +618,7 @@ func (this *BuilderClass) BuildUpdateSql(tableName string, update interface{}, a
 					continue
 				}
 				updateStr = updateStr + key + ` = ?,`
-				paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
+				paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.MustToString(val)))
 			}
 		} else {
 			go_error.ThrowInternal(`map value type error`)
@@ -629,7 +629,7 @@ func (this *BuilderClass) BuildUpdateSql(tableName string, update interface{}, a
 				continue
 			}
 			updateStr = updateStr + key + ` = ?,`
-			paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.ToString(val)))
+			paramArgs = append(paramArgs, template.HTMLEscapeString(go_reflect.Reflect.MustToString(val)))
 		}
 	} else {
 		go_error.ThrowInternal(`type error`)
