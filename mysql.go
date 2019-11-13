@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jmoiron/sqlx"
 	"github.com/pefish/go-error"
 	"github.com/pefish/go-logger"
+	"github.com/pefish/go-mysql/sqlx"
 	"github.com/pefish/go-reflect"
 	"github.com/satori/go.uuid"
 	"reflect"
@@ -34,7 +34,9 @@ var (
 	DEFAULT_CONN_MAX_LIFTTIME        = 6 * time.Second
 )
 
-var MysqlHelper = MysqlClass{}
+var MysqlHelper = MysqlClass{
+	TagName: `db`,
+}
 
 // ----------------------------- MysqlClass -----------------------------
 
@@ -42,6 +44,11 @@ type MysqlClass struct {
 	Db   *sqlx.DB
 	TxId string
 	Tx   *sqlx.Tx
+	TagName string
+}
+
+func (this *MysqlClass) SetTagName(name string) {
+	this.TagName = name
 }
 
 func (this *MysqlClass) Close() {
@@ -129,6 +136,7 @@ func (this *MysqlClass) Connect(host string, port uint64, username string, passw
 		d,
 	)
 	db := sqlx.MustConnect(`mysql`, connUrl)
+	db.SetTagName(this.TagName)
 	go_logger.Logger.Info(fmt.Sprintf(`mysql connect succeed. url: %s`, address))
 	db.DB.SetMaxOpenConns(int(maxOpenConns))  // 用于设置最大打开的连接数，默认值为0表示不限制
 	db.DB.SetMaxIdleConns(int(maxIdleConns))  // 用于设置闲置的连接数
@@ -201,7 +209,7 @@ func (this *MysqlClass) RawSelect(dest interface{}, sql string, values ...interf
 
 func (this *MysqlClass) CountByMap(tableName string, where map[string]string) uint64 {
 	var countStruct struct {
-		Count uint64 `db:"count"`
+		Count uint64 `json:"count" db:"count"`
 	}
 	sql, paramArgs := Builder.BuildCountSql(tableName, where)
 	this.RawSelectFirst(&countStruct, sql, paramArgs...)
@@ -210,7 +218,7 @@ func (this *MysqlClass) CountByMap(tableName string, where map[string]string) ui
 
 func (this *MysqlClass) Count(tableName string, args ...interface{}) uint64 {
 	var countStruct struct {
-		Count uint64 `db:"count"`
+		Count uint64 `json:"count" db:"count"`
 	}
 	sql, paramArgs := Builder.BuildCountSql(tableName, args...)
 	this.RawSelectFirst(&countStruct, sql, paramArgs...)
@@ -219,7 +227,7 @@ func (this *MysqlClass) Count(tableName string, args ...interface{}) uint64 {
 
 func (this *MysqlClass) Sum(tableName string, sumTarget string, args ...interface{}) string {
 	var sumStruct struct {
-		Sum *string `db:"sum"`
+		Sum *string `json:"sum" db:"sum"`
 	}
 	sql, paramArgs := Builder.BuildSumSql(tableName, sumTarget, args...)
 	this.RawSelectFirst(&sumStruct, sql, paramArgs...)
@@ -231,7 +239,7 @@ func (this *MysqlClass) Sum(tableName string, sumTarget string, args ...interfac
 
 func (this *MysqlClass) SelectByMap(dest interface{}, tableName string, select_ string, where map[string]string) {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, this.TagName), `,`)
 	}
 	var paramArgs = []interface{}{}
 	sql, paramArgs := Builder.BuildSelectSql(tableName, select_, where)
@@ -240,7 +248,7 @@ func (this *MysqlClass) SelectByMap(dest interface{}, tableName string, select_ 
 
 func (this *MysqlClass) SelectFirstByMap(dest interface{}, tableName string, select_ string, where map[string]string) bool {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, this.TagName), `,`)
 	}
 	var paramArgs = []interface{}{}
 	sql, paramArgs := Builder.BuildSelectSql(tableName, select_, where)
@@ -249,7 +257,7 @@ func (this *MysqlClass) SelectFirstByMap(dest interface{}, tableName string, sel
 
 func (this *MysqlClass) SelectColumn(columnName string, tableName string, args ...interface{}) *string {
 	var resultStruct struct {
-		Result string `db:"result"`
+		Result string `json:"result" db:"result"`
 	}
 	if notFound := this.SelectFirst(&resultStruct, tableName, fmt.Sprintf(`%s as result`, columnName), args...); notFound {
 		return nil
@@ -259,7 +267,7 @@ func (this *MysqlClass) SelectColumn(columnName string, tableName string, args .
 
 func (this *MysqlClass) SelectFirst(dest interface{}, tableName string, select_ string, args ...interface{}) bool {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, this.TagName), `,`)
 	}
 	sql, paramArgs := Builder.BuildSelectSql(tableName, select_, args...)
 	return this.RawSelectFirst(dest, sql, paramArgs...)
@@ -267,7 +275,7 @@ func (this *MysqlClass) SelectFirst(dest interface{}, tableName string, select_ 
 
 func (this *MysqlClass) SelectFirstByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) bool {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, this.TagName), `,`)
 	}
 	sql := fmt.Sprintf(
 		`select %s from %s %s`,
@@ -280,7 +288,7 @@ func (this *MysqlClass) SelectFirstByStr(dest interface{}, tableName string, sel
 
 func (this *MysqlClass) SelectById(dest interface{}, tableName string, select_ string, id string, forUpdate bool) bool {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, this.TagName), `,`)
 	}
 	var paramArgs = []interface{}{}
 	sql, paramArgs := Builder.BuildSelectSql(tableName, select_, map[string]string{
@@ -291,7 +299,7 @@ func (this *MysqlClass) SelectById(dest interface{}, tableName string, select_ s
 
 func (this *MysqlClass) Select(dest interface{}, tableName string, select_ string, args ...interface{}) {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, this.TagName), `,`)
 	}
 	var paramArgs = []interface{}{}
 	sql, paramArgs := Builder.BuildSelectSql(tableName, select_, args...)
@@ -300,7 +308,7 @@ func (this *MysqlClass) Select(dest interface{}, tableName string, select_ strin
 
 func (this *MysqlClass) SelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, `db`), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, this.TagName), `,`)
 	}
 	sql := fmt.Sprintf(
 		`select %s from %s %s`,

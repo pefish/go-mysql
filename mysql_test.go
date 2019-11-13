@@ -2,11 +2,14 @@ package go_mysql
 
 import (
 	"fmt"
+	"github.com/pefish/go-logger"
 	"testing"
 )
 
 func TestMysqlClass_RawExec(t *testing.T) {
+	go_logger.Logger.Init(`test`, ``)
 	mysqlHelper := &MysqlClass{}
+	mysqlHelper.SetTagName(`json`)
 	mysqlHelper.ConnectWithConfiguration(Configuration{
 		Host:     `127.0.0.1`,
 		Username: `root`,
@@ -14,10 +17,10 @@ func TestMysqlClass_RawExec(t *testing.T) {
 		Database: `test`,
 	})
 	type A struct {
-		Id     uint64 `db:"id"`
-		Mobile string `db:"mobile"`
-		CreatedAt string `db:"created_at" json:"created_at"`
-		UpdatedAt string `db:"updated_at" json:"updated_at"`
+		Id     uint64 `json:"id"`
+		Mobile string `json:"mobile"`
+		CreatedAt string `json:"created_at"`
+		UpdatedAt string `json:"updated_at"`
 	}
 	var a []A
 	mysqlHelper.RawSelect(&a, `select * from test where mobile = ?`, 11)
