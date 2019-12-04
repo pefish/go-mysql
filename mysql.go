@@ -175,7 +175,7 @@ func (this *MysqlClass) processValues(sql string, values []interface{}) (string,
 	return sql, values
 }
 
-func (this *MysqlClass) RawExec(sql string, values ...interface{}) (lastInsertId int64, rowsAffected int64) {
+func (this *MysqlClass) RawExec(sql string, values ...interface{}) (uint64, uint64) {
 	sql, values = this.processValues(sql, values)
 	this.printDebugInfo(sql, values, true)
 
@@ -193,7 +193,7 @@ func (this *MysqlClass) RawExec(sql string, values ...interface{}) (lastInsertId
 	if err1 != nil {
 		panic(err1)
 	}
-	return lastInsertId, rowsAffected
+	return go_reflect.Reflect.MustToUint64(lastInsertId), go_reflect.Reflect.MustToUint64(rowsAffected)
 }
 
 func (this *MysqlClass) RawSelect(dest interface{}, sql string, values ...interface{}) {
@@ -290,12 +290,12 @@ func (this *MysqlClass) SelectFirstByStr(dest interface{}, tableName string, sel
 	return this.RawSelectFirst(dest, sql, values...)
 }
 
-func (this *MysqlClass) SelectById(dest interface{}, tableName string, select_ string, id string, forUpdate bool) bool {
+func (this *MysqlClass) SelectById(dest interface{}, tableName string, select_ string, id uint64, forUpdate bool) bool {
 	if select_ == `*` {
 		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, this.TagName), `,`)
 	}
 	var paramArgs = []interface{}{}
-	sql, paramArgs := Builder.BuildSelectSql(tableName, select_, map[string]string{
+	sql, paramArgs := Builder.BuildSelectSql(tableName, select_, map[string]interface{}{
 		`id`: id,
 	}, nil, nil, forUpdate)
 	return this.RawSelectFirst(dest, sql, paramArgs...)
@@ -323,36 +323,36 @@ func (this *MysqlClass) SelectByStr(dest interface{}, tableName string, select_ 
 	this.RawSelect(dest, sql, values...)
 }
 
-func (this *MysqlClass) InsertByMap(tableName string, params map[string]string) (lastInsertId int64, rowsAffected int64) {
+func (this *MysqlClass) InsertByMap(tableName string, params map[string]string) (lastInsertId uint64, rowsAffected uint64) {
 	sql, paramArgs := Builder.BuildInsertSql(tableName, params, BuildInsertSqlOpt{})
 	return this.RawExec(sql, paramArgs...)
 }
 
-func (this *MysqlClass) Insert(tableName string, params interface{}) (lastInsertId int64, rowsAffected int64) {
+func (this *MysqlClass) Insert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
 	sql, paramArgs := Builder.BuildInsertSql(tableName, params, BuildInsertSqlOpt{})
 	return this.RawExec(sql, paramArgs...)
 }
 
-func (this *MysqlClass) InsertIgnore(tableName string, params interface{}) (lastInsertId int64, rowsAffected int64) {
+func (this *MysqlClass) InsertIgnore(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
 	sql, paramArgs := Builder.BuildInsertSql(tableName, params, BuildInsertSqlOpt{
 		InsertIgnore: true,
 	})
 	return this.RawExec(sql, paramArgs...)
 }
 
-func (this *MysqlClass) ReplaceInto(tableName string, params interface{}) (lastInsertId int64, rowsAffected int64) {
+func (this *MysqlClass) ReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
 	sql, paramArgs := Builder.BuildInsertSql(tableName, params, BuildInsertSqlOpt{
 		ReplaceInto: true,
 	})
 	return this.RawExec(sql, paramArgs...)
 }
 
-func (this *MysqlClass) UpdateByMap(tableName string, update map[string]string, where map[string]string) (lastInsertId int64, rowsAffected int64) {
+func (this *MysqlClass) UpdateByMap(tableName string, update map[string]string, where map[string]string) (lastInsertId uint64, rowsAffected uint64) {
 	sql, paramArgs := Builder.BuildUpdateSql(tableName, update, where)
 	return this.RawExec(sql, paramArgs...)
 }
 
-func (this *MysqlClass) Update(tableName string, update interface{}, args ...interface{}) (lastInsertId int64, rowsAffected int64) {
+func (this *MysqlClass) Update(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64) {
 	sql, paramArgs := Builder.BuildUpdateSql(tableName, update, args...)
 	return this.RawExec(sql, paramArgs...)
 }
