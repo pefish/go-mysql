@@ -36,20 +36,16 @@ var (
 )
 
 var MysqlHelper = MysqlClass{
-	TagName: `db`,
+	TagName: `json`,
 }
 
 // ----------------------------- MysqlClass -----------------------------
 
 type MysqlClass struct {
-	Db   *sqlx.DB
-	TxId string
-	Tx   *sqlx.Tx
+	Db      *sqlx.DB
+	TxId    string
+	Tx      *sqlx.Tx
 	TagName string
-}
-
-func (this *MysqlClass) SetTagName(name string) {
-	this.TagName = name
 }
 
 func (this *MysqlClass) Close() {
@@ -214,7 +210,7 @@ func (this *MysqlClass) RawSelect(dest interface{}, sql string, values ...interf
 
 func (this *MysqlClass) CountByMap(tableName string, where map[string]string) uint64 {
 	var countStruct struct {
-		Count uint64 `json:"count" db:"count"`
+		Count uint64 `json:"count"`
 	}
 	sql, paramArgs := Builder.BuildCountSql(tableName, where)
 	this.RawSelectFirst(&countStruct, sql, paramArgs...)
@@ -223,7 +219,7 @@ func (this *MysqlClass) CountByMap(tableName string, where map[string]string) ui
 
 func (this *MysqlClass) Count(tableName string, args ...interface{}) uint64 {
 	var countStruct struct {
-		Count uint64 `json:"count" db:"count"`
+		Count uint64 `json:"count"`
 	}
 	sql, paramArgs := Builder.BuildCountSql(tableName, args...)
 	this.RawSelectFirst(&countStruct, sql, paramArgs...)
@@ -232,7 +228,7 @@ func (this *MysqlClass) Count(tableName string, args ...interface{}) uint64 {
 
 func (this *MysqlClass) Sum(tableName string, sumTarget string, args ...interface{}) string {
 	var sumStruct struct {
-		Sum *string `json:"sum" db:"sum"`
+		Sum *string `json:"sum"`
 	}
 	sql, paramArgs := Builder.BuildSumSql(tableName, sumTarget, args...)
 	this.RawSelectFirst(&sumStruct, sql, paramArgs...)
@@ -262,7 +258,7 @@ func (this *MysqlClass) SelectFirstByMap(dest interface{}, tableName string, sel
 
 func (this *MysqlClass) SelectColumn(columnName string, tableName string, args ...interface{}) *string {
 	var resultStruct struct {
-		Result string `json:"result" db:"result"`
+		Result string `json:"result"`
 	}
 	if notFound := this.SelectFirst(&resultStruct, tableName, fmt.Sprintf(`%s as result`, columnName), args...); notFound {
 		return nil
@@ -390,9 +386,10 @@ func (this *MysqlClass) Begin() MysqlClass {
 	this.printDebugInfo(`begin`, nil, true)
 
 	return MysqlClass{
-		Db:   nil,
-		TxId: id,
-		Tx:   this.Db.MustBegin(),
+		Db:      nil,
+		TxId:    id,
+		Tx:      this.Db.MustBegin(),
+		TagName: this.TagName,
 	}
 }
 
