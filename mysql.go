@@ -3,6 +3,7 @@ package go_mysql
 import (
 	sql2 "database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pefish/go-error"
@@ -355,6 +356,13 @@ func (this *MysqlClass) UpdateByMap(tableName string, update map[string]string, 
 func (this *MysqlClass) Update(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64) {
 	sql, paramArgs := Builder.BuildUpdateSql(tableName, update, args...)
 	return this.RawExec(sql, paramArgs...)
+}
+
+func (this *MysqlClass) MustAffectedUpdate(tableName string, update interface{}, args ...interface{}) {
+	_, rowsAffected := this.Update(tableName, update, args...)
+	if rowsAffected == 0 {
+		panic(errors.New(`no affected`))
+	}
 }
 
 func (this *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...interface{}) (notFound bool) {
