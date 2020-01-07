@@ -2,30 +2,29 @@ package go_mysql
 
 import (
 	"fmt"
-	"github.com/pefish/go-logger"
 	"testing"
+
+	go_logger "github.com/pefish/go-logger"
 )
 
 func TestMysqlClass_RawExec(t *testing.T) {
 	go_logger.Logger.Init(`test`, ``)
-	mysqlHelper := &MysqlClass{}
-	mysqlHelper.SetTagName(`json`)
-	mysqlHelper.ConnectWithConfiguration(Configuration{
+	MysqlHelper.MustConnectWithConfiguration(Configuration{
 		Host:     `127.0.0.1`,
 		Username: `root`,
 		Password: `root`,
 		Database: `test`,
 	})
 	type A struct {
-		Id     uint64 `json:"id"`
-		Mobile string `json:"mobile"`
+		Id        uint64 `json:"id"`
+		Mobile    string `json:"mobile"`
 		CreatedAt string `json:"created_at"`
 		UpdatedAt string `json:"updated_at"`
 	}
 	var a []A
-	mysqlHelper.RawSelect(&a, `select * from test where mobile = ?`, 11)
+	MysqlHelper.RawSelect(&a, `select * from test where mobile = ?`, 11)
 	fmt.Println(a)
-	mysqlHelper.Close()
+	MysqlHelper.Close()
 
 	//mysqlHelper1 := &MysqlClass{}
 	//mysqlHelper1.Connect(`rm-bp1o91m9al1i70g7jho.mysql.rds.aliyuncs.com`, -1, `root`, `1qaz@WSX`, `test`)
@@ -36,7 +35,7 @@ func TestMysqlClass_RawExec(t *testing.T) {
 
 func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 	builder := BuilderClass{}
-	sql, params := builder.BuildUpdateSql(`table`, map[string]interface{}{
+	sql, params := builder.MustBuildUpdateSql(`table`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 	}, []map[string]interface{}{
@@ -53,7 +52,7 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 
 func TestBuilderClass_BuildSelectSql(t *testing.T) {
 	builder := BuilderClass{}
-	sql, params := builder.BuildSelectSql(`table`, `*`, []map[string]interface{}{
+	sql, params := builder.MustBuildSelectSql(`table`, `*`, []map[string]interface{}{
 		{
 			`b`:    65,
 			`bghf`: `352352`,
@@ -67,7 +66,7 @@ func TestBuilderClass_BuildSelectSql(t *testing.T) {
 
 func TestBuilderClass_BuildInsertSql(t *testing.T) {
 	builder := BuilderClass{}
-	sql, params := builder.BuildInsertSql(`table`, map[string]interface{}{
+	sql, params := builder.MustBuildInsertSql(`table`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 	}, BuildInsertSqlOpt{})
@@ -76,7 +75,7 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 
 func TestBuilderClass_BuildCountSql(t *testing.T) {
 	builder := BuilderClass{}
-	sql, params := builder.BuildCountSql(`table`, map[string]interface{}{
+	sql, params := builder.MustBuildCountSql(`table`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 	})
@@ -85,7 +84,7 @@ func TestBuilderClass_BuildCountSql(t *testing.T) {
 
 func TestBuilderClass_BuildSumSql(t *testing.T) {
 	builder := BuilderClass{}
-	sql, params := builder.BuildSumSql(`table`, `aa`, map[string]interface{}{
+	sql, params := builder.MustBuildSumSql(`table`, `aa`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 	})
@@ -94,14 +93,14 @@ func TestBuilderClass_BuildSumSql(t *testing.T) {
 
 func TestBuilderClass_BuildWhere(t *testing.T) {
 	builder := BuilderClass{}
-	args, sql := builder.BuildWhere(map[string]interface{}{
+	args, sql := builder.MustBuildWhere(map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 		`b`: nil,
 	})
 	fmt.Println(sql, args)
 
-	args1, sql1 := builder.BuildWhere(struct {
+	args1, sql1 := builder.MustBuildWhere(struct {
 		A string  `json:"a"`
 		B string  `json:"b"`
 		C *string `json:"c"`
@@ -115,7 +114,7 @@ func TestBuilderClass_BuildWhere(t *testing.T) {
 
 func TestMysqlClass_ConnectWithConfiguration(t *testing.T) {
 	mysqlClint := MysqlClass{}
-	mysqlClint.ConnectWithConfiguration(Configuration{
+	mysqlClint.MustConnectWithConfiguration(Configuration{
 		Host:     `127.0.0.1`,
 		Username: `root`,
 		Password: `root`,
@@ -125,7 +124,7 @@ func TestMysqlClass_ConnectWithConfiguration(t *testing.T) {
 
 func TestMysqlClass_ConnectWithMap(t *testing.T) {
 	mysqlClint := MysqlClass{}
-	mysqlClint.ConnectWithMap(map[string]interface{}{
+	mysqlClint.MustConnectWithMap(map[string]interface{}{
 		`host`:            `127.0.0.1`,
 		`username`:        `root`,
 		`password`:        `root`,
