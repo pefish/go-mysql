@@ -493,11 +493,12 @@ func (this *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...i
 	} else {
 		err = this.Db.Get(dest, sql, values...)
 	}
-	if err != nil && err.Error() == `sql: no rows in result set` {
-		return true, err
-	}
 	if err != nil {
-		return true, err
+		if err.Error() == `sql: no rows in result set` {
+			return true, nil
+		} else {
+			return true, err
+		}
 	}
 
 	return false, nil
