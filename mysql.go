@@ -383,14 +383,15 @@ func (this *MysqlClass) SelectByStr(dest interface{}, tableName string, select_ 
 	this.RawSelect(dest, sql, values...)
 }
 
-func (this *MysqlClass) MustAffectedInsert(tableName string, params interface{}) {
-	_, rowsAffected, err := this.Insert(tableName, params)
+func (this *MysqlClass) MustAffectedInsert(tableName string, params interface{}) (lastInsertId uint64) {
+	lastInsertId, rowsAffected, err := this.Insert(tableName, params)
 	if err != nil {
 		panic(err)
 	}
 	if rowsAffected == 0 {
 		panic(errors.New(`no affected`))
 	}
+	return lastInsertId
 }
 
 func (this *MysqlClass) MustInsert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
@@ -461,14 +462,15 @@ func (this *MysqlClass) Update(tableName string, update interface{}, args ...int
 	return this.RawExec(sql, paramArgs...)
 }
 
-func (this *MysqlClass) MustAffectedUpdate(tableName string, update interface{}, args ...interface{}) {
-	_, rowsAffected, err := this.Update(tableName, update, args...)
+func (this *MysqlClass) MustAffectedUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64) {
+	lastInsertId, rowsAffected, err := this.Update(tableName, update, args...)
 	if err != nil {
 		panic(err)
 	}
 	if rowsAffected == 0 {
 		panic(errors.New(`no affected`))
 	}
+	return lastInsertId
 }
 
 func (this *MysqlClass) MustRawSelectFirst(dest interface{}, sql string, values ...interface{}) bool {
