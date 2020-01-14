@@ -259,7 +259,10 @@ func (this *MysqlClass) Count(tableName string, args ...interface{}) (uint64, er
 	if err != nil {
 		return 0, err
 	}
-	this.RawSelectFirst(&countStruct, sql, paramArgs...)
+	_, err = this.RawSelectFirst(&countStruct, sql, paramArgs...)
+	if err != nil {
+		return 0, err
+	}
 	return countStruct.Count, nil
 }
 
@@ -279,7 +282,10 @@ func (this *MysqlClass) Sum(tableName string, sumTarget string, args ...interfac
 	if err != nil {
 		return ``, err
 	}
-	this.RawSelectFirst(&sumStruct, sql, paramArgs...)
+	_, err = this.RawSelectFirst(&sumStruct, sql, paramArgs...)
+	if err != nil {
+		return ``, err
+	}
 	if sumStruct.Sum == nil {
 		return `0`, nil
 	}
@@ -364,11 +370,21 @@ func (this *MysqlClass) Select(dest interface{}, tableName string, select_ strin
 	if err != nil {
 		return err
 	}
-	this.RawSelect(dest, sql, paramArgs...)
+	err = this.RawSelect(dest, sql, paramArgs...)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (this *MysqlClass) SelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) {
+func (this *MysqlClass) MustSelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) {
+	err := this.SelectByStr(dest, tableName, select_, str, values...)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (this *MysqlClass) SelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) error {
 	if select_ == `*` {
 		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, this.TagName), `,`)
 	}
@@ -378,7 +394,11 @@ func (this *MysqlClass) SelectByStr(dest interface{}, tableName string, select_ 
 		tableName,
 		str,
 	)
-	this.RawSelect(dest, sql, values...)
+	err := this.RawSelect(dest, sql, values...)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (this *MysqlClass) MustAffectedInsert(tableName string, params interface{}) (lastInsertId uint64) {
