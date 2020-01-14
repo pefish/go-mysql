@@ -11,10 +11,9 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	go_logger "github.com/pefish/go-logger"
 	"github.com/pefish/go-mysql/sqlx"
-	go_reflect "github.com/pefish/go-reflect"
-	uuid "github.com/satori/go.uuid"
+	"github.com/pefish/go-reflect"
+	"github.com/satori/go.uuid"
 )
 
 type InterfaceLogger interface {
@@ -48,7 +47,6 @@ var (
 
 var MysqlHelper = MysqlClass{
 	TagName: `json`,
-	Logger:  go_logger.Logger,
 }
 
 // ----------------------------- MysqlClass -----------------------------
@@ -524,6 +522,7 @@ func (this *MysqlClass) Begin() (*MysqlClass, error) {
 		TxId:    id,
 		Tx:      tx,
 		TagName: this.TagName,
+		Logger: this.Logger,
 	}, nil
 }
 

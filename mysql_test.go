@@ -3,12 +3,9 @@ package go_mysql
 import (
 	"fmt"
 	"testing"
-
-	go_logger "github.com/pefish/go-logger"
 )
 
 func TestMysqlClass_RawExec(t *testing.T) {
-	go_logger.Logger.Init(`test`, ``)
 	MysqlHelper.MustConnectWithConfiguration(Configuration{
 		Host:     `127.0.0.1`,
 		Username: `root`,
