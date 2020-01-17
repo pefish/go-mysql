@@ -747,7 +747,12 @@ func (this *BuilderClass) buildWhereFromMapInterface(ele map[string]interface{})
 			if err != nil {
 				return nil, ``, err
 			}
-			valStr := template.HTMLEscapeString(str)
+			var valStr string
+			if strings.HasPrefix(str, `s:`) {
+				valStr = str[2:]
+			} else {
+				valStr = template.HTMLEscapeString(str)
+			}
 			andStr = andStr + key + ` = ? and `
 			tempParamArgs = append(tempParamArgs, valStr)
 		}
@@ -767,13 +772,13 @@ func (this *BuilderClass) MustBuildWhere(where interface{}) ([]interface{}, stri
 }
 
 func (this *BuilderClass) BuildWhere(where interface{}) ([]interface{}, string, error) {
-	whereStr := `where `
 	type_ := reflect.TypeOf(where)
 	kind := type_.Kind()
 	paramArgs := []interface{}{}
 	if kind == reflect.String {
 		return paramArgs, where.(string), nil
 	}
+	whereStr := `where `
 	str := ``
 	if kind == reflect.Map {
 		valKind := type_.Elem().Kind()

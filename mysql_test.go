@@ -93,7 +93,7 @@ func TestBuilderClass_BuildWhere(t *testing.T) {
 	args, sql := builder.MustBuildWhere(map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
-		`b`: nil,
+		`b`: `s:in ("haha","hehe")`,
 	})
 	fmt.Println(sql, args)
 
