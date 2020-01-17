@@ -749,12 +749,12 @@ func (this *BuilderClass) buildWhereFromMapInterface(ele map[string]interface{})
 			}
 			var valStr string
 			if strings.HasPrefix(str, `s:`) {
-				valStr = str[2:]
+				andStr = andStr + key + ` ` + str[2:] + ` and `
 			} else {
 				valStr = template.HTMLEscapeString(str)
+				andStr = andStr + key + ` = ? and `
+				tempParamArgs = append(tempParamArgs, valStr)
 			}
-			andStr = andStr + key + ` = ? and `
-			tempParamArgs = append(tempParamArgs, valStr)
 		}
 	}
 	if len(andStr) > 4 {
