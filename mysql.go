@@ -156,12 +156,16 @@ func (this *MysqlClass) MustConnect(host string, port uint64, username string, p
 	this.Db = db
 }
 
-func (this *MysqlClass) printDebugInfo(sql string, values interface{}) {
+func (this *MysqlClass) printDebugInfo(sql string, values interface{}, printInfo bool) {
 	txInfo := ``
 	if this.Tx != nil {
 		txInfo = fmt.Sprintf(`[transaction id: %s] `, this.TxId)
 	}
-	this.Logger.DebugF(`%s%s, %v`, txInfo, sql, values)
+	if printInfo {
+		this.Logger.InfoF(`%s%s, %v`, txInfo, sql, values)
+	} else {
+		this.Logger.DebugF(`%s%s, %v`, txInfo, sql, values)
+	}
 }
 
 func (this *MysqlClass) processValues(sql string, values []interface{}) (string, []interface{}, error) {
@@ -196,7 +200,7 @@ func (this *MysqlClass) RawExec(sql string, values ...interface{}) (uint64, uint
 	if err != nil {
 		return 0, 0, err
 	}
-	this.printDebugInfo(sql, values)
+	this.printDebugInfo(sql, values, true)
 
 	var result sql2.Result
 	if this.Tx != nil {
@@ -230,7 +234,7 @@ func (this *MysqlClass) RawSelect(dest interface{}, sql string, values ...interf
 	if err != nil {
 		return err
 	}
-	this.printDebugInfo(sql, values)
+	this.printDebugInfo(sql, values, false)
 
 	if this.Tx != nil {
 		err = this.Tx.Select(dest, sql, values...)
@@ -504,7 +508,7 @@ func (this *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...i
 	if err != nil {
 		return true, err
 	}
-	this.printDebugInfo(sql, values)
+	this.printDebugInfo(sql, values, false)
 
 	if this.Tx != nil {
 		err = this.Tx.Get(dest, sql, values...)
@@ -532,7 +536,7 @@ func (this *MysqlClass) MustBegin() *MysqlClass {
 
 func (this *MysqlClass) Begin() (*MysqlClass, error) {
 	id := fmt.Sprintf(`%s`, uuid.NewV4())
-	this.printDebugInfo(`begin`, nil)
+	this.printDebugInfo(`begin`, nil, true)
 	tx, err := this.Db.Beginx()
 	if err != nil {
 		return nil, err
@@ -554,7 +558,7 @@ func (this *MysqlClass) MustCommit() {
 }
 
 func (this *MysqlClass) Commit() error {
-	this.printDebugInfo(`commit`, nil)
+	this.printDebugInfo(`commit`, nil, true)
 
 	err := this.Tx.Commit()
 	if err != nil {
@@ -571,7 +575,7 @@ func (this *MysqlClass) MustRollback() {
 }
 
 func (this *MysqlClass) Rollback() error {
-	this.printDebugInfo(`rollback`, nil)
+	this.printDebugInfo(`rollback`, nil, true)
 
 	err := this.Tx.Rollback()
 	if err != nil {
@@ -581,7 +585,7 @@ func (this *MysqlClass) Rollback() error {
 }
 
 func (this *MysqlClass) RollbackWithErr() error {
-	this.printDebugInfo(`rollback`, nil)
+	this.printDebugInfo(`rollback`, nil, true)
 
 	return this.Tx.Rollback()
 }
