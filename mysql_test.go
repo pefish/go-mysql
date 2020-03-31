@@ -2,10 +2,13 @@ package go_mysql
 
 import (
 	"fmt"
+	"github.com/pefish/go-logger"
 	"testing"
 )
 
 func TestMysqlClass_RawExec(t *testing.T) {
+	go_logger.Logger = go_logger.NewLogger(go_logger.WithIsDebug(true))
+	MysqlHelper.SetLogger(go_logger.Logger)
 	MysqlHelper.MustConnectWithConfiguration(Configuration{
 		Host:     `127.0.0.1`,
 		Username: `root`,
@@ -19,7 +22,7 @@ func TestMysqlClass_RawExec(t *testing.T) {
 		UpdatedAt string `json:"updated_at"`
 	}
 	var a []A
-	MysqlHelper.RawSelect(&a, `select * from test where mobile = ?`, 11)
+	MysqlHelper.MustRawSelect(&a, `select * from test where mobile = ?`, 11)
 	fmt.Println(a)
 	MysqlHelper.Close()
 

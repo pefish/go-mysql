@@ -230,6 +230,9 @@ func (this *MysqlClass) MustRawSelect(dest interface{}, sql string, values ...in
 }
 
 func (this *MysqlClass) RawSelect(dest interface{}, sql string, values ...interface{}) error {
+	if strings.HasPrefix(sql, `select *`) {  // 只支持固定前缀的select *
+		sql = `select ` + strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, this.TagName), `,`) + sql[8:]
+	}
 	sql, values, err := this.processValues(sql, values)
 	if err != nil {
 		return err
