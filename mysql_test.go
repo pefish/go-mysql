@@ -22,7 +22,7 @@ func TestMysqlClass_RawExec(t *testing.T) {
 		UpdatedAt string `json:"updated_at"`
 	}
 	var a []A
-	MysqlHelper.MustRawSelect(&a, `select * from test where mobile = ?`, 11)
+	MysqlHelper.MustRawSelect(&a, `select * from test where mobile in (?)`, []string{"dgh","dh"})
 	fmt.Println(a)
 	MysqlHelper.Close()
 
