@@ -129,3 +129,25 @@ func TestMysqlClass_ConnectWithMap(t *testing.T) {
 	})
 	mysqlClint.Close()
 }
+
+func TestMysqlClass_SelectFieldStrFirst(t *testing.T) {
+	MysqlHelper.MustConnectWithConfiguration(Configuration{
+		Host:     `127.0.0.1`,
+		Username: `root`,
+		Password: `root`,
+		Database: `test`,
+	})
+	notFound, result, err := MysqlHelper.SelectFieldStrFirst("mobile", "test", map[string]interface{}{
+		"id": 3,
+	})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if notFound {
+		fmt.Println("not found")
+		return
+	}
+	fmt.Println(*result)
+
+}

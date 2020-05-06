@@ -391,6 +391,21 @@ func (mysql *MysqlClass) SelectFirst(dest interface{}, tableName string, select_
 	return mysql.RawSelectFirst(dest, sql, paramArgs...)
 }
 
+func (mysql *MysqlClass) SelectFieldStrFirst(fieldName string, tableName string, args ...interface{}) (bool, *string, error) {
+	sql, paramArgs, err := Builder.BuildSelectSql(tableName, fmt.Sprintf("%s as target", fieldName), args...)
+	if err != nil {
+		return true, nil, err
+	}
+	var targetStruct struct {
+		Target *string `json:"target"`
+	}
+	notFound, err := mysql.RawSelectFirst(&targetStruct, sql, paramArgs...)
+	if err != nil || notFound {
+		return notFound, nil, err
+	}
+	return false, targetStruct.Target, nil
+}
+
 func (mysql *MysqlClass) MustSelectFirstByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) bool {
 	bool_, err := mysql.SelectFirstByStr(dest, tableName, select_, str, values...)
 	if err != nil {
