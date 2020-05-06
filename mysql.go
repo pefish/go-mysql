@@ -271,10 +271,10 @@ func (mysql *MysqlClass) MustRawExec(sql string, values ...interface{}) (uint64,
 
 func (mysql *MysqlClass) RawExec(sql string, values ...interface{}) (uint64, uint64, error) {
 	sql, values, err := mysql.processValues(sql, values)
+	mysql.printDebugInfo(sql, values, true)
 	if err != nil {
 		return 0, 0, err
 	}
-	mysql.printDebugInfo(sql, values, true)
 
 	var result sql2.Result
 	if mysql.Tx != nil {
@@ -308,10 +308,10 @@ func (mysql *MysqlClass) RawSelect(dest interface{}, sql string, values ...inter
 		sql = `select ` + strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.TagName), `,`) + sql[8:]
 	}
 	sql, values, err := mysql.processValues(sql, values)
+	mysql.printDebugInfo(sql, values, false)
 	if err != nil {
 		return err
 	}
-	mysql.printDebugInfo(sql, values, false)
 	if mysql.Tx != nil {
 		err = mysql.Tx.Select(dest, sql, values...)
 	} else {
@@ -596,10 +596,10 @@ func (mysql *MysqlClass) MustRawSelectFirst(dest interface{}, sql string, values
 
 func (mysql *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...interface{}) (bool, error) {
 	sql, values, err := mysql.processValues(sql, values)
+	mysql.printDebugInfo(sql, values, false)
 	if err != nil {
 		return true, err
 	}
-	mysql.printDebugInfo(sql, values, false)
 
 	if mysql.Tx != nil {
 		err = mysql.Tx.Get(dest, sql, values...)
