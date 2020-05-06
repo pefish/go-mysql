@@ -37,6 +37,7 @@ var (
 
 var MysqlHelper = MysqlClass{
 	TagName: `json`,
+	Logger: go_interface_logger.DefaultLogger,
 }
 
 // ----------------------------- MysqlClass -----------------------------
@@ -71,59 +72,114 @@ func (mysql *MysqlClass) Close() {
 }
 
 func (mysql *MysqlClass) MustConnectWithConfiguration(configuration Configuration) {
+	err := mysql.ConnectWithConfiguration(configuration)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (mysql *MysqlClass) ConnectWithConfiguration(configuration Configuration) error {
 	var port = DEFAULT_PORT
 	if configuration.Port != nil {
-		port = go_reflect.Reflect.MustToUint64(configuration.Port)
+		port_, err := go_reflect.Reflect.ToUint64(configuration.Port)
+		if err != nil {
+			return err
+		}
+		port = port_
 	}
 	var database *string
 	if configuration.Database != nil {
-		d := go_reflect.Reflect.MustToString(configuration.Database)
+		d, err := go_reflect.Reflect.ToString(configuration.Database)
+		if err != nil {
+			return err
+		}
 		database = &d
 	}
 	var maxOpenConns = DEFAULT_MAX_OPEN_CONNS
 	if configuration.MaxOpenConns != nil {
-		maxOpenConns = go_reflect.Reflect.MustToUint64(configuration.MaxOpenConns)
+		maxOpenConns_, err := go_reflect.Reflect.ToUint64(configuration.MaxOpenConns)
+		if err != nil {
+			return err
+		}
+		maxOpenConns = maxOpenConns_
 	}
 	var maxIdleConns = DEFAULT_MAX_IDLE_CONNS
 	if configuration.MaxIdleConns != nil {
-		maxIdleConns = go_reflect.Reflect.MustToUint64(configuration.MaxIdleConns)
+		maxIdleConns_, err := go_reflect.Reflect.ToUint64(configuration.MaxIdleConns)
+		if err != nil {
+			return err
+		}
+		maxIdleConns = maxIdleConns_
 	}
 	connMaxLifetime := DEFAULT_CONN_MAX_LIFTTIME
 	if configuration.ConnMaxLifetime != nil {
 		connMaxLifetime = configuration.ConnMaxLifetime.(time.Duration)
 	}
 
-	mysql.MustConnect(configuration.Host, port, configuration.Username, configuration.Password, database, maxOpenConns, maxIdleConns, connMaxLifetime)
+	err := mysql.Connect(configuration.Host, port, configuration.Username, configuration.Password, database, maxOpenConns, maxIdleConns, connMaxLifetime)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (mysql *MysqlClass) MustConnectWithMap(map_ map[string]interface{}) {
+	err := mysql.ConnectWithMap(map_)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (mysql *MysqlClass) ConnectWithMap(map_ map[string]interface{}) error {
 	var port = DEFAULT_PORT
 	if map_[`port`] != nil {
-		port = go_reflect.Reflect.MustToUint64(map_[`port`])
+		port_, err := go_reflect.Reflect.ToUint64(map_[`port`])
+		if err != nil {
+			return err
+		}
+		port = port_
 	}
 	var database *string
 	if map_[`database`] != nil {
-		d := go_reflect.Reflect.MustToString(map_[`database`])
+		d, err := go_reflect.Reflect.ToString(map_[`database`])
+		if err != nil {
+			return err
+		}
 		database = &d
 	}
 	var maxOpenConns = DEFAULT_MAX_OPEN_CONNS
 	if map_[`maxOpenConns`] != nil {
-		maxOpenConns = go_reflect.Reflect.MustToUint64(map_[`maxOpenConns`])
+		maxOpenConns_, err := go_reflect.Reflect.ToUint64(map_[`maxOpenConns`])
+		if err != nil {
+			return err
+		}
+		maxOpenConns = maxOpenConns_
 	}
 	var maxIdleConns = DEFAULT_MAX_IDLE_CONNS
 	if map_[`maxIdleConns`] != nil {
-		maxIdleConns = go_reflect.Reflect.MustToUint64(map_[`maxIdleConns`])
+		maxIdleConns_, err := go_reflect.Reflect.ToUint64(map_[`maxIdleConns`])
+		if err != nil {
+			return err
+		}
+		maxIdleConns = maxIdleConns_
 	}
 	connMaxLifetime := DEFAULT_CONN_MAX_LIFTTIME
 	if map_[`connMaxLifeTime`] != nil {
-		fmt.Println(reflect.TypeOf(map_[`connMaxLifeTime`]).Kind())
-		connMaxLifetime = time.Duration(go_reflect.Reflect.MustToInt64(map_[`connMaxLifeTime`])) * time.Second
+		connMaxLifeTime_, err := go_reflect.Reflect.ToInt64(map_[`connMaxLifeTime`])
+		if err != nil {
+			return err
+		}
+		connMaxLifetime = time.Duration(connMaxLifeTime_) * time.Second
 	}
 
-	mysql.MustConnect(map_[`host`].(string), port, map_[`username`].(string), map_[`password`].(string), database, maxOpenConns, maxIdleConns, connMaxLifetime)
+	err := mysql.Connect(map_[`host`].(string), port, map_[`username`].(string), map_[`password`].(string), database, maxOpenConns, maxIdleConns, connMaxLifetime)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (mysql *MysqlClass) MustConnect(host string, port uint64, username string, password string, database *string, maxOpenConns uint64, maxIdleConns uint64, connMaxLifetime time.Duration) {
+func (mysql *MysqlClass) Connect(host string, port uint64, username string, password string, database *string, maxOpenConns uint64, maxIdleConns uint64, connMaxLifetime time.Duration) error {
 	d := ``
 	if database != nil {
 		d = *database
@@ -137,13 +193,18 @@ func (mysql *MysqlClass) MustConnect(host string, port uint64, username string, 
 		address,
 		d,
 	)
-	db := sqlx.MustConnect(`mysql`, connUrl)
+	db, err := sqlx.Connect(`mysql`, connUrl)
+	if err != nil {
+		return err
+	}
 	db.SetTagName(mysql.TagName)
 	mysql.Logger.Info(fmt.Sprintf(`mysql connect succeed. url: %s`, address))
 	db.DB.SetMaxOpenConns(int(maxOpenConns))  // 用于设置最大打开的连接数，默认值为0表示不限制
 	db.DB.SetMaxIdleConns(int(maxIdleConns))  // 用于设置闲置的连接数
 	db.DB.SetConnMaxLifetime(connMaxLifetime) // 设置一个超时时间，时间小于数据库的超时时间即可
 	mysql.Db = db
+
+	return nil
 }
 
 func (mysql *MysqlClass) printDebugInfo(sql string, values interface{}, printInfo bool) {
@@ -251,7 +312,6 @@ func (mysql *MysqlClass) RawSelect(dest interface{}, sql string, values ...inter
 		return err
 	}
 	mysql.printDebugInfo(sql, values, false)
-
 	if mysql.Tx != nil {
 		err = mysql.Tx.Select(dest, sql, values...)
 	} else {
