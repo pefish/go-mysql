@@ -151,3 +151,16 @@ func TestMysqlClass_SelectFieldStrFirst(t *testing.T) {
 	fmt.Println(*result)
 
 }
+
+func TestBuilderClass_BuildInsertSql1(t *testing.T) {
+	builder := BuilderClass{}
+	sql, params := builder.MustBuildInsertSql(`table`, map[string]interface{}{
+		`a`: 123,
+		`c`: `hfhd`,
+	}, BuildInsertSqlOpt{
+		OnDuplicateKeyUpdate: map[string]interface{}{
+			"a": 235,
+		},
+	})
+	fmt.Println(sql, params)
+}

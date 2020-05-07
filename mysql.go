@@ -37,7 +37,7 @@ var (
 
 var MysqlHelper = MysqlClass{
 	TagName: `json`,
-	Logger: go_interface_logger.DefaultLogger,
+	Logger:  go_interface_logger.DefaultLogger,
 }
 
 // ----------------------------- MysqlClass -----------------------------
@@ -541,6 +541,16 @@ func (mysql *MysqlClass) InsertIgnore(tableName string, params interface{}) (las
 	return mysql.RawExec(sql, paramArgs...)
 }
 
+func (mysql *MysqlClass) InsertOnDuplicateKeyUpdate(tableName string, update map[string]interface{}, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
+	sql, paramArgs, err := Builder.BuildInsertSql(tableName, params, BuildInsertSqlOpt{
+		OnDuplicateKeyUpdate: update,
+	})
+	if err != nil {
+		return 0, 0, err
+	}
+	return mysql.RawExec(sql, paramArgs...)
+}
+
 func (mysql *MysqlClass) MustReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
 	lastInsertId, rowsAffected, err := mysql.ReplaceInto(tableName, params)
 	if err != nil {
@@ -689,8 +699,9 @@ type BuilderClass struct {
 var Builder = BuilderClass{}
 
 type BuildInsertSqlOpt struct {
-	InsertIgnore bool
-	ReplaceInto  bool
+	InsertIgnore         bool
+	ReplaceInto          bool
+	OnDuplicateKeyUpdate map[string]interface{}
 }
 
 func (mysql *BuilderClass) MustBuildInsertSql(tableName string, params interface{}, opt BuildInsertSqlOpt) (string, []interface{}) {
@@ -759,6 +770,21 @@ func (mysql *BuilderClass) BuildInsertSql(tableName string, params interface{}, 
 		strings.Join(cols, `,`),
 		strings.Join(vals, `,`),
 	)
+	if opt.OnDuplicateKeyUpdate != nil {
+		str += " on duplicate key update "
+		for key, val := range opt.OnDuplicateKeyUpdate {
+			if val == nil {
+				continue
+			}
+			str += key + ` = ?,`
+			valStr, err := go_reflect.Reflect.ToString(val)
+			if err != nil {
+				return ``, nil, err
+			}
+			paramArgs = append(paramArgs, template.HTMLEscapeString(valStr))
+		}
+		str = strings.TrimSuffix(str, ",")
+	}
 	return str, paramArgs, nil
 }
 
