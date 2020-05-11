@@ -89,10 +89,7 @@ func (mysql *MysqlClass) ConnectWithConfiguration(configuration Configuration) e
 	}
 	var database *string
 	if configuration.Database != nil {
-		d, err := go_reflect.Reflect.ToString(configuration.Database)
-		if err != nil {
-			return err
-		}
+		d := go_reflect.Reflect.ToString(configuration.Database)
 		database = &d
 	}
 	var maxOpenConns = DEFAULT_MAX_OPEN_CONNS
@@ -141,10 +138,7 @@ func (mysql *MysqlClass) ConnectWithMap(map_ map[string]interface{}) error {
 	}
 	var database *string
 	if map_[`database`] != nil {
-		d, err := go_reflect.Reflect.ToString(map_[`database`])
-		if err != nil {
-			return err
-		}
+		d := go_reflect.Reflect.ToString(map_[`database`])
 		database = &d
 	}
 	var maxOpenConns = DEFAULT_MAX_OPEN_CONNS
@@ -727,10 +721,7 @@ func (mysql *BuilderClass) BuildInsertSql(tableName string, params interface{}, 
 				}
 				cols = append(cols, key)
 				vals = append(vals, `?`)
-				str, err := go_reflect.Reflect.ToString(val)
-				if err != nil {
-					return ``, nil, err
-				}
+				str := go_reflect.Reflect.ToString(val)
 				paramArgs = append(paramArgs, template.HTMLEscapeString(str))
 			}
 		} else {
@@ -747,10 +738,7 @@ func (mysql *BuilderClass) BuildInsertSql(tableName string, params interface{}, 
 			}
 			cols = append(cols, key)
 			vals = append(vals, `?`)
-			str, err := go_reflect.Reflect.ToString(val)
-			if err != nil {
-				return ``, nil, err
-			}
+			str := go_reflect.Reflect.ToString(val)
 			paramArgs = append(paramArgs, template.HTMLEscapeString(str))
 		}
 	} else {
@@ -777,10 +765,7 @@ func (mysql *BuilderClass) BuildInsertSql(tableName string, params interface{}, 
 				continue
 			}
 			str += key + ` = ?,`
-			valStr, err := go_reflect.Reflect.ToString(val)
-			if err != nil {
-				return ``, nil, err
-			}
+			valStr := go_reflect.Reflect.ToString(val)
 			paramArgs = append(paramArgs, template.HTMLEscapeString(valStr))
 		}
 		str = strings.TrimSuffix(str, ",")
@@ -853,21 +838,12 @@ func (mysql *BuilderClass) buildWhereFromMapInterface(ele map[string]interface{}
 		kind := reflect.TypeOf(val).Kind()
 		if kind == reflect.Slice {
 			val_ := val.([]interface{})
-			str, err := go_reflect.Reflect.ToString(val_[0])
-			if err != nil {
-				return nil, ``, err
-			}
+			str := go_reflect.Reflect.ToString(val_[0])
 			andStr = andStr + key + ` ` + str + ` ? and `
-			str, err = go_reflect.Reflect.ToString(val_[1])
-			if err != nil {
-				return nil, ``, err
-			}
+			str = go_reflect.Reflect.ToString(val_[1])
 			tempParamArgs = append(tempParamArgs, template.HTMLEscapeString(str))
 		} else {
-			str, err := go_reflect.Reflect.ToString(val)
-			if err != nil {
-				return nil, ``, err
-			}
+			str := go_reflect.Reflect.ToString(val)
 			var valStr string
 			if strings.HasPrefix(str, `s:`) {
 				andStr = andStr + key + ` ` + str[2:] + ` and `
@@ -1028,10 +1004,7 @@ func (mysql *BuilderClass) BuildUpdateSql(tableName string, update interface{}, 
 					continue
 				}
 				updateStr = updateStr + key + ` = ?,`
-				str, err := go_reflect.Reflect.ToString(val)
-				if err != nil {
-					return ``, nil, err
-				}
+				str := go_reflect.Reflect.ToString(val)
 				paramArgs = append(paramArgs, template.HTMLEscapeString(str))
 			}
 		} else {
@@ -1047,10 +1020,7 @@ func (mysql *BuilderClass) BuildUpdateSql(tableName string, update interface{}, 
 				continue
 			}
 			updateStr = updateStr + key + ` = ?,`
-			str, err := go_reflect.Reflect.ToString(val)
-			if err != nil {
-				return ``, nil, err
-			}
+			str := go_reflect.Reflect.ToString(val)
 			paramArgs = append(paramArgs, template.HTMLEscapeString(str))
 		}
 	} else {
