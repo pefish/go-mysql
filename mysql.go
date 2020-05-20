@@ -201,16 +201,12 @@ func (mysql *MysqlClass) Connect(host string, port uint64, username string, pass
 	return nil
 }
 
-func (mysql *MysqlClass) printDebugInfo(sql string, values interface{}, printInfo bool) {
+func (mysql *MysqlClass) printDebugInfo(sql string, values interface{}) {
 	txInfo := ``
 	if mysql.Tx != nil {
 		txInfo = fmt.Sprintf(`[transaction id: %s] `, mysql.TxId)
 	}
-	if printInfo {
-		mysql.Logger.InfoF(`%s%s, %v`, txInfo, sql, values)
-	} else {
-		mysql.Logger.DebugF(`%s%s, %v`, txInfo, sql, values)
-	}
+	mysql.Logger.DebugF(`%s%s, %v`, txInfo, sql, values)
 }
 
 func (mysql *MysqlClass) MustRawSelectByStr(dest interface{}, select_ string, str string, values ...interface{}) {
@@ -265,7 +261,7 @@ func (mysql *MysqlClass) MustRawExec(sql string, values ...interface{}) (uint64,
 
 func (mysql *MysqlClass) RawExec(sql string, values ...interface{}) (uint64, uint64, error) {
 	sql, values, err := mysql.processValues(sql, values)
-	mysql.printDebugInfo(sql, values, true)
+	mysql.printDebugInfo(sql, values)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -302,7 +298,7 @@ func (mysql *MysqlClass) RawSelect(dest interface{}, sql string, values ...inter
 		sql = `select ` + strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.TagName), `,`) + sql[8:]
 	}
 	sql, values, err := mysql.processValues(sql, values)
-	mysql.printDebugInfo(sql, values, false)
+	mysql.printDebugInfo(sql, values)
 	if err != nil {
 		return err
 	}
@@ -600,7 +596,7 @@ func (mysql *MysqlClass) MustRawSelectFirst(dest interface{}, sql string, values
 
 func (mysql *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...interface{}) (bool, error) {
 	sql, values, err := mysql.processValues(sql, values)
-	mysql.printDebugInfo(sql, values, false)
+	mysql.printDebugInfo(sql, values)
 	if err != nil {
 		return true, err
 	}
@@ -631,7 +627,7 @@ func (mysql *MysqlClass) MustBegin() *MysqlClass {
 
 func (mysql *MysqlClass) Begin() (*MysqlClass, error) {
 	id := fmt.Sprintf(`%s`, uuid.NewV4())
-	mysql.printDebugInfo(`begin`, nil, true)
+	mysql.printDebugInfo(`begin`, nil)
 	tx, err := mysql.Db.Beginx()
 	if err != nil {
 		return nil, err
@@ -653,7 +649,7 @@ func (mysql *MysqlClass) MustCommit() {
 }
 
 func (mysql *MysqlClass) Commit() error {
-	mysql.printDebugInfo(`commit`, nil, true)
+	mysql.printDebugInfo(`commit`, nil)
 
 	err := mysql.Tx.Commit()
 	if err != nil {
@@ -670,7 +666,7 @@ func (mysql *MysqlClass) MustRollback() {
 }
 
 func (mysql *MysqlClass) Rollback() error {
-	mysql.printDebugInfo(`rollback`, nil, true)
+	mysql.printDebugInfo(`rollback`, nil)
 
 	err := mysql.Tx.Rollback()
 	if err != nil {
@@ -680,7 +676,7 @@ func (mysql *MysqlClass) Rollback() error {
 }
 
 func (mysql *MysqlClass) RollbackWithErr() error {
-	mysql.printDebugInfo(`rollback`, nil, true)
+	mysql.printDebugInfo(`rollback`, nil)
 
 	return mysql.Tx.Rollback()
 }
