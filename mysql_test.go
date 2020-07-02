@@ -1,37 +1,13 @@
 package go_mysql
 
 import (
-	"fmt"
+	"github.com/pefish/go-test-assert"
+	"strings"
 	"testing"
 )
 
-func TestMysqlClass_RawExec(t *testing.T) {
-	MysqlHelper.MustConnectWithConfiguration(Configuration{
-		Host:     `127.0.0.1`,
-		Username: `root`,
-		Password: `root`,
-		Database: `test`,
-	})
-	type A struct {
-		Id        uint64 `json:"id"`
-		Mobile    string `json:"mobile"`
-		CreatedAt string `json:"created_at"`
-		UpdatedAt string `json:"updated_at"`
-	}
-	var a []A
-	MysqlHelper.MustRawSelect(&a, `select * from test where mobile in (?)`, []string{"dgh","dh"})
-	fmt.Println(a)
-	MysqlHelper.Close()
-
-	//mysqlHelper1 := &MysqlClass{}
-	//mysqlHelper1.Connect(`rm-bp1o91m9al1i70g7jho.mysql.rds.aliyuncs.com`, -1, `root`, `1qaz@WSX`, `test`)
-	//mysqlHelper1.RawExec(`insert into user (login_pwd) values ("625ywrtywrwy")`)
-	//time.Sleep(3 * time.Second)
-	//mysqlHelper1.Close()
-}
-
 func TestBuilderClass_BuildUpdateSql(t *testing.T) {
-	builder := BuilderClass{}
+	builder := builderClass{}
 	sql, params := builder.MustBuildUpdateSql(`table`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
@@ -43,59 +19,50 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 		{
 			`bnn`: `345`,
 		},
-	})
-	fmt.Println(sql, params)
-}
-
-func TestBuilderClass_BuildSelectSql(t *testing.T) {
-	builder := BuilderClass{}
-	sql, params := builder.MustBuildSelectSql(`table`, `*`, []map[string]interface{}{
-		{
-			`b`:    65,
-			`bghf`: `352352`,
-		},
-		{
-			`bnn`: `345`,
-		},
-	})
-	fmt.Println(sql, params)
+	}, "where ")
+	test.Equal(t, true, strings.HasPrefix(sql, "update table set "))
+	test.Equal(t, 5, len(params))
 }
 
 func TestBuilderClass_BuildInsertSql(t *testing.T) {
-	builder := BuilderClass{}
+	builder := builderClass{}
 	sql, params := builder.MustBuildInsertSql(`table`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
-	}, BuildInsertSqlOpt{})
-	fmt.Println(sql, params)
+	}, buildInsertSqlOpt{})
+	test.Equal(t, true, strings.HasPrefix(sql, "insert into table "))
+	test.Equal(t, 2, len(params))
 }
 
 func TestBuilderClass_BuildCountSql(t *testing.T) {
-	builder := BuilderClass{}
+	builder := builderClass{}
 	sql, params := builder.MustBuildCountSql(`table`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 	})
-	fmt.Println(sql, params)
+	test.Equal(t, true, strings.HasPrefix(sql, "select count(*) as count from table where "))
+	test.Equal(t, 2, len(params))
 }
 
 func TestBuilderClass_BuildSumSql(t *testing.T) {
-	builder := BuilderClass{}
+	builder := builderClass{}
 	sql, params := builder.MustBuildSumSql(`table`, `aa`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 	})
-	fmt.Println(sql, params)
+	test.Equal(t, true, strings.HasPrefix(sql, "select sum(aa) as sum from table where "))
+	test.Equal(t, 2, len(params))
 }
 
 func TestBuilderClass_BuildWhere(t *testing.T) {
-	builder := BuilderClass{}
+	builder := builderClass{}
 	args, sql := builder.MustBuildWhere(map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 		`b`: `s:in ("haha","hehe")`,
 	})
-	fmt.Println(sql, args)
+	test.Equal(t, true, strings.HasPrefix(sql, "where "))
+	test.Equal(t, 2, len(args))
 
 	args1, sql1 := builder.MustBuildWhere(struct {
 		A string  `json:"a"`
@@ -106,61 +73,21 @@ func TestBuilderClass_BuildWhere(t *testing.T) {
 		B: `765`,
 		C: nil,
 	})
-	fmt.Println(sql1, args1)
+	test.Equal(t, true, strings.HasPrefix(sql1, "where "))
+	test.Equal(t, 2, len(args1))
 }
 
-func TestMysqlClass_ConnectWithConfiguration(t *testing.T) {
-	mysqlClint := MysqlClass{}
-	mysqlClint.MustConnectWithConfiguration(Configuration{
-		Host:     `127.0.0.1`,
-		Username: `root`,
-		Password: `root`,
-	})
-	mysqlClint.Close()
-}
-
-func TestMysqlClass_ConnectWithMap(t *testing.T) {
-	mysqlClint := MysqlClass{}
-	mysqlClint.MustConnectWithMap(map[string]interface{}{
-		`host`:            `127.0.0.1`,
-		`username`:        `root`,
-		`password`:        `root`,
-		`connMaxLifeTime`: 10,
-	})
-	mysqlClint.Close()
-}
-
-func TestMysqlClass_SelectFieldStrFirst(t *testing.T) {
-	MysqlHelper.MustConnectWithConfiguration(Configuration{
-		Host:     `127.0.0.1`,
-		Username: `root`,
-		Password: `root`,
-		Database: `test`,
-	})
-	notFound, result, err := MysqlHelper.SelectFieldStrFirst("mobile", "test", map[string]interface{}{
-		"id": 3,
-	})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	if notFound {
-		fmt.Println("not found")
-		return
-	}
-	fmt.Println(*result)
-
-}
 
 func TestBuilderClass_BuildInsertSql1(t *testing.T) {
-	builder := BuilderClass{}
+	builder := builderClass{}
 	sql, params := builder.MustBuildInsertSql(`table`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
-	}, BuildInsertSqlOpt{
+	}, buildInsertSqlOpt{
 		OnDuplicateKeyUpdate: map[string]interface{}{
 			"a": 235,
 		},
 	})
-	fmt.Println(sql, params)
+	test.Equal(t, true, strings.HasPrefix(sql, "insert into table "))
+	test.Equal(t, 3, len(params))
 }
