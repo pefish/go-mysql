@@ -879,23 +879,14 @@ func (mysql *builderClass) buildWhereFromMapInterface(ele map[string]interface{}
 		if val == nil {
 			continue
 		}
-		kind := reflect.TypeOf(val).Kind()
-		if kind == reflect.Slice {
-			val_ := val.([]interface{})
-			str := go_reflect.Reflect.ToString(val_[0])
-			andStr = andStr + key + ` ` + str + ` ? and `
-			str = go_reflect.Reflect.ToString(val_[1])
-			tempParamArgs = append(tempParamArgs, template.HTMLEscapeString(str))
+		str := go_reflect.Reflect.ToString(val)
+		var valStr string
+		if strings.HasPrefix(str, `s:`) {
+			andStr = andStr + key + ` ` + str[2:] + ` and `
 		} else {
-			str := go_reflect.Reflect.ToString(val)
-			var valStr string
-			if strings.HasPrefix(str, `s:`) {
-				andStr = andStr + key + ` ` + str[2:] + ` and `
-			} else {
-				valStr = template.HTMLEscapeString(str)
-				andStr = andStr + key + ` = ? and `
-				tempParamArgs = append(tempParamArgs, valStr)
-			}
+			valStr = template.HTMLEscapeString(str)
+			andStr = andStr + key + ` = ? and `
+			tempParamArgs = append(tempParamArgs, valStr)
 		}
 	}
 	if len(andStr) > 4 {

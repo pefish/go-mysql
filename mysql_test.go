@@ -1,6 +1,7 @@
 package go_mysql
 
 import (
+	go_interface_logger "github.com/pefish/go-interface-logger"
 	"github.com/pefish/go-test-assert"
 	"strings"
 	"testing"
@@ -89,5 +90,30 @@ func TestBuilderClass_BuildInsertSql1(t *testing.T) {
 		},
 	})
 	test.Equal(t, true, strings.HasPrefix(sql, "insert into table "))
+	test.Equal(t, 3, len(params))
+}
+
+func Test_builderClass_buildWhereFromMapInterface(t *testing.T) {
+	builder := builderClass{}
+	params, sql, err := builder.buildWhereFromMapInterface(map[string]interface{}{
+		`a`: 123,
+		`c`: "s:in (35)",
+	})
+	test.Equal(t, nil, err)
+	test.Equal(t, "a = ? and c in (35)", sql)
+	test.Equal(t, 1, len(params))
+}
+
+func TestMysqlClass_processValues(t *testing.T) {
+	mysql := &MysqlClass{
+		TagName: `json`,
+		Logger:  go_interface_logger.DefaultLogger,
+	}
+	sql, params, err := mysql.processValues("select * from test where a in (?) and b = ?", []interface{}{
+		[]string{"123","456"},
+		6345,
+	})
+	test.Equal(t, nil, err)
+	test.Equal(t, "select * from test where a in (?, ?) and b = ?", sql)
 	test.Equal(t, 3, len(params))
 }
