@@ -106,8 +106,8 @@ func Test_builderClass_buildWhereFromMapInterface(t *testing.T) {
 
 func TestMysqlClass_processValues(t *testing.T) {
 	mysql := &MysqlClass{
-		TagName: `json`,
-		Logger:  go_interface_logger.DefaultLogger,
+		tagName: `json`,
+		logger:  go_interface_logger.DefaultLogger,
 	}
 	sql, params, err := mysql.processValues("select * from test where a in (?) and b = ?", []interface{}{
 		[]string{"123","456"},

@@ -18,6 +18,7 @@ import (
 )
 
 type IMysql interface {
+	TagName() string
 	SetLogger(logger go_logger.InterfaceLogger)
 	Close()
 
@@ -90,8 +91,8 @@ var (
 )
 
 var MysqlInstance IMysql = &MysqlClass{
-	TagName: `json`,
-	Logger:  go_logger.DefaultLogger,
+	tagName: `json`,
+	logger:  go_logger.DefaultLogger,
 }
 
 // ----------------------------- MysqlClass -----------------------------
@@ -100,27 +101,31 @@ type MysqlClass struct {
 	Db      *sqlx.DB
 	TxId    string
 	Tx      *sqlx.Tx
-	TagName string
-	Logger  go_logger.InterfaceLogger
+	tagName string
+	logger  go_logger.InterfaceLogger
+}
+
+func (mysql *MysqlClass) TagName() string {
+	return mysql.tagName
 }
 
 func (mysql *MysqlClass) SetLogger(logger go_logger.InterfaceLogger) {
-	mysql.Logger = logger
+	mysql.logger = logger
 }
 
 func (mysql *MysqlClass) Close() {
 	if mysql.Db != nil {
 		err := mysql.Db.Close()
 		if err != nil {
-			mysql.Logger.Error(err)
+			mysql.logger.Error(err)
 		} else {
-			mysql.Logger.Info(`mysql close succeed.`)
+			mysql.logger.Info(`mysql close succeed.`)
 		}
 	}
 	if mysql.Tx != nil {
 		err := mysql.Tx.Rollback()
 		if err != nil {
-			mysql.Logger.Error(err)
+			mysql.logger.Error(err)
 		}
 	}
 }
@@ -233,7 +238,7 @@ func (mysql *MysqlClass) Connect(host string, port uint64, username string, pass
 		d = *database
 	}
 	address := fmt.Sprintf(`%s:%d`, host, port)
-	mysql.Logger.Info(fmt.Sprintf(`mysql connecting... url: %s`, address))
+	mysql.logger.Info(fmt.Sprintf(`mysql connecting... url: %s`, address))
 	connUrl := fmt.Sprintf(
 		`%s:%s@tcp(%s)/%s?charset=utf8&parseTime=true&multiStatements=true&loc=UTC`,
 		username,
@@ -245,8 +250,8 @@ func (mysql *MysqlClass) Connect(host string, port uint64, username string, pass
 	if err != nil {
 		return err
 	}
-	db.SetTagName(mysql.TagName)
-	mysql.Logger.Info(fmt.Sprintf(`mysql connect succeed. url: %s`, address))
+	db.SetTagName(mysql.tagName)
+	mysql.logger.Info(fmt.Sprintf(`mysql connect succeed. url: %s`, address))
 	db.DB.SetMaxOpenConns(int(maxOpenConns))  // 用于设置最大打开的连接数，默认值为0表示不限制
 	db.DB.SetMaxIdleConns(int(maxIdleConns))  // 用于设置闲置的连接数
 	db.DB.SetConnMaxLifetime(connMaxLifetime) // 设置一个超时时间，时间小于数据库的超时时间即可
@@ -260,7 +265,7 @@ func (mysql *MysqlClass) printDebugInfo(sql string, values interface{}) {
 	if mysql.Tx != nil {
 		txInfo = fmt.Sprintf(`[transaction id: %s] `, mysql.TxId)
 	}
-	mysql.Logger.DebugF(`%s%s, %v`, txInfo, sql, values)
+	mysql.logger.DebugF(`%s%s, %v`, txInfo, sql, values)
 }
 
 func (mysql *MysqlClass) MustRawSelectByStr(dest interface{}, select_ string, str string, values ...interface{}) {
@@ -272,7 +277,7 @@ func (mysql *MysqlClass) MustRawSelectByStr(dest interface{}, select_ string, st
 
 func (mysql *MysqlClass) RawSelectByStr(dest interface{}, select_ string, str string, values ...interface{}) error {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.TagName), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`)
 	}
 	sql := fmt.Sprintf(
 		`select %s %s`,
@@ -349,7 +354,7 @@ func (mysql *MysqlClass) MustRawSelect(dest interface{}, sql string, values ...i
 
 func (mysql *MysqlClass) RawSelect(dest interface{}, sql string, values ...interface{}) error {
 	if strings.HasPrefix(sql, `select *`) { // 只支持固定前缀的select *
-		sql = `select ` + strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.TagName), `,`) + sql[8:]
+		sql = `select ` + strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`) + sql[8:]
 	}
 	sql, values, err := mysql.processValues(sql, values)
 	mysql.printDebugInfo(sql, values)
@@ -426,7 +431,7 @@ func (mysql *MysqlClass) MustSelectFirst(dest interface{}, tableName string, sel
 
 func (mysql *MysqlClass) SelectFirst(dest interface{}, tableName string, select_ string, args ...interface{}) (bool, error) {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.TagName), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`)
 	}
 	sql, paramArgs, err := builder.BuildSelectSql(tableName, select_, args...)
 	if err != nil {
@@ -460,7 +465,7 @@ func (mysql *MysqlClass) MustSelectFirstByStr(dest interface{}, tableName string
 
 func (mysql *MysqlClass) SelectFirstByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) (bool, error) {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.TagName), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`)
 	}
 	sql := fmt.Sprintf(
 		`select %s from %s %s`,
@@ -481,7 +486,7 @@ func (mysql *MysqlClass) MustSelectById(dest interface{}, tableName string, sele
 
 func (mysql *MysqlClass) SelectById(dest interface{}, tableName string, select_ string, id uint64, forUpdate bool) (notFound bool, err error) {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.TagName), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`)
 	}
 	var paramArgs = []interface{}{}
 	sql, paramArgs, err := builder.BuildSelectSql(tableName, select_, map[string]interface{}{
@@ -502,7 +507,7 @@ func (mysql *MysqlClass) MustSelect(dest interface{}, tableName string, select_ 
 
 func (mysql *MysqlClass) Select(dest interface{}, tableName string, select_ string, args ...interface{}) error {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.TagName), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`)
 	}
 	var paramArgs = []interface{}{}
 	sql, paramArgs, err := builder.BuildSelectSql(tableName, select_, args...)
@@ -525,7 +530,7 @@ func (mysql *MysqlClass) MustSelectByStr(dest interface{}, tableName string, sel
 
 func (mysql *MysqlClass) SelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) error {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.TagName), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`)
 	}
 	sql := fmt.Sprintf(
 		`select %s from %s %s`,
@@ -690,8 +695,8 @@ func (mysql *MysqlClass) Begin() (*MysqlClass, error) {
 		Db:      nil,
 		TxId:    id,
 		Tx:      tx,
-		TagName: mysql.TagName,
-		Logger:  mysql.Logger,
+		tagName: mysql.tagName,
+		logger:  mysql.logger,
 	}, nil
 }
 
