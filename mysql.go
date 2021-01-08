@@ -11,14 +11,14 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	go_interface_logger "github.com/pefish/go-interface-logger"
+	"github.com/pefish/go-logger"
 	"github.com/pefish/go-mysql/sqlx"
 	go_reflect "github.com/pefish/go-reflect"
 	uuid "github.com/satori/go.uuid"
 )
 
 type IMysql interface {
-	SetLogger(logger go_interface_logger.InterfaceLogger)
+	SetLogger(logger go_logger.InterfaceLogger)
 	Close()
 
 	MustConnectWithConfiguration(configuration Configuration)
@@ -91,7 +91,7 @@ var (
 
 var MysqlInstance IMysql = &MysqlClass{
 	TagName: `json`,
-	Logger:  go_interface_logger.DefaultLogger,
+	Logger:  go_logger.DefaultLogger,
 }
 
 // ----------------------------- MysqlClass -----------------------------
@@ -101,10 +101,10 @@ type MysqlClass struct {
 	TxId    string
 	Tx      *sqlx.Tx
 	TagName string
-	Logger  go_interface_logger.InterfaceLogger
+	Logger  go_logger.InterfaceLogger
 }
 
-func (mysql *MysqlClass) SetLogger(logger go_interface_logger.InterfaceLogger) {
+func (mysql *MysqlClass) SetLogger(logger go_logger.InterfaceLogger) {
 	mysql.Logger = logger
 }
 
