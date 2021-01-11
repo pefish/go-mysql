@@ -2,7 +2,6 @@ module github.com/pefish/go-mysql
 
 require (
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/pefish/go-interface-logger v0.0.4
 	github.com/pefish/go-logger v0.4.9
 	github.com/pefish/go-reflect v0.2.0
 	github.com/pefish/go-test-assert v0.0.1

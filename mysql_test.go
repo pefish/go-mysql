@@ -1,7 +1,7 @@
 package go_mysql
 
 import (
-	go_interface_logger "github.com/pefish/go-interface-logger"
+	go_logger "github.com/pefish/go-logger"
 	"github.com/pefish/go-test-assert"
 	"strings"
 	"testing"
@@ -107,7 +107,7 @@ func Test_builderClass_buildWhereFromMapInterface(t *testing.T) {
 func TestMysqlClass_processValues(t *testing.T) {
 	mysql := &MysqlClass{
 		tagName: `json`,
-		logger:  go_interface_logger.DefaultLogger,
+		logger:  go_logger.DefaultLogger,
 	}
 	sql, params, err := mysql.processValues("select * from test where a in (?) and b = ?", []interface{}{
 		[]string{"123","456"},
