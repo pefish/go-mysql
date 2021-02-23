@@ -3,7 +3,7 @@ package go_mysql
 import (
 	sql2 "database/sql"
 	"encoding/json"
-	"errors"
+	"github.com/pkg/errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -15,6 +15,7 @@ import (
 	"github.com/pefish/go-mysql/sqlx"
 	go_reflect "github.com/pefish/go-reflect"
 	uuid "github.com/satori/go.uuid"
+	"github.com/Masterminds/squirrel"
 )
 
 type IMysql interface {
@@ -790,6 +791,34 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 			str := go_reflect.Reflect.ToString(val)
 			paramArgs = append(paramArgs, template.HTMLEscapeString(str))
 		}
+	} else if kind == reflect.Slice {
+		value_ := reflect.ValueOf(params)
+		if value_.Len() == 0 {
+			return "", nil, errors.New("slice length cannot be 0")
+		}
+		map_, err := mysql.structToMap(value_.Index(0).Interface())
+		if err != nil {
+			return ``, nil, err
+		}
+		for key, _ := range map_ {
+			cols = append(cols, key)
+		}
+		q := squirrel.Insert(tableName).Columns(cols...)
+		for i := 0; i < value_.Len(); i++ {
+			map_, err := mysql.structToMap(value_.Index(i).Interface())
+			if err != nil {
+				return ``, nil, err
+			}
+			vals := make([]interface{}, 0, 5)
+			for _, val := range map_ {
+				if val == nil {
+					continue
+				}
+				vals = append(vals, val)
+			}
+			q = q.Values(vals...)
+		}
+		return q.ToSql()
 	} else {
 		return ``, nil, errors.New(`type error`)
 	}
@@ -798,7 +827,7 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 	if opt.InsertIgnore == true {
 		insertStr += ` ignore`
 	} else if opt.ReplaceInto == true {
-		insertStr = `replace into`
+		insertStr = ` replace into`
 	}
 	str := fmt.Sprintf(
 		`%s into %s (%s) values (%s)`,

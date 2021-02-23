@@ -33,6 +33,37 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 	}, buildInsertSqlOpt{})
 	test.Equal(t, true, strings.HasPrefix(sql, "insert into table "))
 	test.Equal(t, 2, len(params))
+
+	sql1, params1 := builder.MustBuildInsertSql(`table`, []map[string]interface{}{
+		{
+			`a`: 123,
+			`c`: `hfhd`,
+		},
+		{
+			`a`: 345,
+			`c`: `aaa`,
+		},
+	}, buildInsertSqlOpt{})
+	test.Equal(t, true, strings.HasPrefix(sql1, "INSERT INTO table "))
+	test.Equal(t, 4, len(params1))
+
+	type Test struct {
+		A string `json:"a"`
+		B uint64 `json:"b"`
+	}
+	sql2, params2 := builder.MustBuildInsertSql(`table`, []Test{
+		{
+			B: 123,
+			A: `hfhd`,
+		},
+		{
+			B: 345,
+			A: `aaa`,
+		},
+	}, buildInsertSqlOpt{})
+	//fmt.Println(sql2, params2)
+	test.Equal(t, true, strings.HasPrefix(sql2, "INSERT INTO table "))
+	test.Equal(t, 4, len(params2))
 }
 
 func TestBuilderClass_BuildCountSql(t *testing.T) {
