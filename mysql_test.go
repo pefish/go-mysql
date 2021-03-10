@@ -29,10 +29,10 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 	builder := builderClass{}
 	sql, params := builder.MustBuildInsertSql(`table`, map[string]interface{}{
 		`a`: 123,
-		`c`: `hfhd`,
+		`c`: `s: = hfhd`,
 	}, buildInsertSqlOpt{})
 	test.Equal(t, true, strings.HasPrefix(sql, "insert into table "))
-	test.Equal(t, 2, len(params))
+	test.Equal(t, 1, len(params))
 
 	sql1, params1 := builder.MustBuildInsertSql(`table`, []map[string]interface{}{
 		{
@@ -126,9 +126,9 @@ func TestBuilderClass_BuildInsertSql1(t *testing.T) {
 
 func Test_builderClass_buildWhereFromMapInterface(t *testing.T) {
 	builder := builderClass{}
-	params, sql, err := builder.buildWhereFromMapInterface(map[string]interface{}{
+	params, sql, err := builder.buildWhereFromMap(map[string]interface{}{
 		`a`: 123,
-		`c`: "s:in (35)",
+		`c`: "s: in (35)",
 	})
 	test.Equal(t, nil, err)
 	test.Equal(t, "a = ? and c in (35)", sql)

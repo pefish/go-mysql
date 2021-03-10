@@ -759,21 +759,13 @@ func (mysql *builderClass) MustBuildInsertSql(tableName string, params interface
 func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, opt buildInsertSqlOpt) (string, []interface{}, error) {
 	var cols []string
 	var vals []string
-	var paramArgs = []interface{}{}
+	var paramArgs = make([]interface{}, 0)
 	type_ := reflect.TypeOf(params)
 	kind := type_.Kind()
 	if kind == reflect.Map {
 		valKind := type_.Elem().Kind()
 		if valKind == reflect.Interface {
-			for key, val := range params.(map[string]interface{}) {
-				if val == nil {
-					continue
-				}
-				cols = append(cols, key)
-				vals = append(vals, `?`)
-				str := go_reflect.Reflect.ToString(val)
-				paramArgs = append(paramArgs, template.HTMLEscapeString(str))
-			}
+			cols, _, vals, paramArgs = mysql.buildFromMap(params.(map[string]interface{}))
 		} else {
 			return ``, nil, errors.New(`map value type error`)
 		}
@@ -782,15 +774,7 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 		if err != nil {
 			return ``, nil, err
 		}
-		for key, val := range map_ {
-			if val == nil {
-				continue
-			}
-			cols = append(cols, key)
-			vals = append(vals, `?`)
-			str := go_reflect.Reflect.ToString(val)
-			paramArgs = append(paramArgs, template.HTMLEscapeString(str))
-		}
+		cols, _, vals, paramArgs = mysql.buildFromMap(map_)
 	} else if kind == reflect.Slice {
 		value_ := reflect.ValueOf(params)
 		if value_.Len() == 0 {
@@ -906,28 +890,45 @@ func (mysql *builderClass) BuildSumSql(tableName string, sumTarget string, args 
 	return str, paramArgs, nil
 }
 
-func (mysql *builderClass) buildWhereFromMapInterface(ele map[string]interface{}) ([]interface{}, string, error) {
+func (mysql *builderClass) buildWhereFromMap(ele map[string]interface{}) ([]interface{}, string, error) {
+	cols, ops, vals, args := mysql.buildFromMap(ele)
+
 	andStr := ``
-	tempParamArgs := []interface{}{}
-	for key, val := range ele {
-		if val == nil {
-			continue
-		}
-		str := go_reflect.Reflect.ToString(val)
-		var valStr string
-		if strings.HasPrefix(str, `s:`) {
-			andStr = andStr + key + ` ` + str[2:] + ` and `
-		} else {
-			valStr = template.HTMLEscapeString(str)
-			andStr = andStr + key + ` = ? and `
-			tempParamArgs = append(tempParamArgs, valStr)
-		}
+	for i, col := range cols {
+		andStr = andStr + col + " " + ops[i] + " "+ vals[i] + ` and `
 	}
 	if len(andStr) > 4 {
 		andStr = andStr[:len(andStr)-5]
 	}
-	return tempParamArgs, andStr, nil
+	return args, andStr, nil
 }
+
+func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (cols []string, ops, vals []string, args []interface{}) {
+	cols = make([]string, 0)
+	ops = make([]string, 0)
+	vals = make([]string, 0)
+	args = make([]interface{}, 0)
+	for key, val := range ele {
+		if val == nil {
+			continue
+		}
+		cols = append(cols, key)
+
+		str := go_reflect.Reflect.ToString(val)
+		if strings.HasPrefix(str, `s:`) {
+			r := strings.Trim(str[2:], " ")
+			index := strings.Index(r, " ")
+			ops = append(ops, r[:index])
+			vals = append(vals, r[index + 1:])
+		} else {
+			ops = append(ops, "=")
+			vals = append(vals, "?")
+			args = append(args, template.HTMLEscapeString(str))
+		}
+	}
+	return
+}
+
 
 func (mysql *builderClass) MustBuildWhere(where interface{}) ([]interface{}, string) {
 	paramArgs, str, err := mysql.BuildWhere(where)
@@ -950,7 +951,7 @@ func (mysql *builderClass) BuildWhere(where interface{}) ([]interface{}, string,
 		valKind := type_.Elem().Kind()
 		if valKind == reflect.Interface {
 			var err error
-			paramArgs, str, err = mysql.buildWhereFromMapInterface(where.(map[string]interface{}))
+			paramArgs, str, err = mysql.buildWhereFromMap(where.(map[string]interface{}))
 			if err != nil {
 				return nil, ``, err
 			}
@@ -962,7 +963,7 @@ func (mysql *builderClass) BuildWhere(where interface{}) ([]interface{}, string,
 		if err != nil {
 			return nil, ``, err
 		}
-		paramArgs, str, err = mysql.buildWhereFromMapInterface(map_)
+		paramArgs, str, err = mysql.buildWhereFromMap(map_)
 		if err != nil {
 			return nil, ``, err
 		}
@@ -974,7 +975,7 @@ func (mysql *builderClass) BuildWhere(where interface{}) ([]interface{}, string,
 		if mapKind == reflect.Interface {
 			sliceVal := where.([]map[string]interface{})
 			for _, ele := range sliceVal {
-				paramArgsTemp, str, err := mysql.buildWhereFromMapInterface(ele)
+				paramArgsTemp, str, err := mysql.buildWhereFromMap(ele)
 				if err != nil {
 					return nil, ``, err
 				}
