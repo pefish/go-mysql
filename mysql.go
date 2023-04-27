@@ -55,7 +55,7 @@ type IMysql interface {
 	Insert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
 	MustInsertIgnore(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64)
 	InsertIgnore(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
-	InsertOnDuplicateKeyUpdate(tableName string, update map[string]interface{}, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
+	InsertOnDuplicateKeyUpdate(tableName string, update map[string]interface{}, otherParams map[string]interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
 	MustReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64)
 	ReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
 	MustUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64)
