@@ -3,19 +3,19 @@ package go_mysql
 import (
 	sql2 "database/sql"
 	"encoding/json"
-	"github.com/pkg/errors"
 	"fmt"
+	"github.com/pkg/errors"
 	"reflect"
 	"strings"
 	"text/template"
 	"time"
 
+	"github.com/Masterminds/squirrel"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pefish/go-logger"
 	"github.com/pefish/go-mysql/sqlx"
 	go_reflect "github.com/pefish/go-reflect"
 	uuid "github.com/satori/go.uuid"
-	"github.com/Masterminds/squirrel"
 )
 
 type IMysql interface {
@@ -63,7 +63,6 @@ type IMysql interface {
 	MustAffectedUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64)
 	MustRawSelectFirst(dest interface{}, sql string, values ...interface{}) bool
 	RawSelectFirst(dest interface{}, sql string, values ...interface{}) (bool, error)
-
 
 	MustBegin() *MysqlClass
 	Begin() (*MysqlClass, error)
@@ -591,8 +590,11 @@ func (mysql *MysqlClass) InsertIgnore(tableName string, params interface{}) (las
 	return mysql.RawExec(sql, paramArgs...)
 }
 
-func (mysql *MysqlClass) InsertOnDuplicateKeyUpdate(tableName string, update map[string]interface{}, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
-	sql, paramArgs, err := builder.BuildInsertSql(tableName, params, buildInsertSqlOpt{
+func (mysql *MysqlClass) InsertOnDuplicateKeyUpdate(tableName string, update map[string]interface{}, otherParams map[string]interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
+	for k, v := range update {
+		otherParams[k] = v
+	}
+	sql, paramArgs, err := builder.BuildInsertSql(tableName, otherParams, buildInsertSqlOpt{
 		OnDuplicateKeyUpdate: update,
 	})
 	if err != nil {
@@ -895,7 +897,7 @@ func (mysql *builderClass) buildWhereFromMap(ele map[string]interface{}) ([]inte
 
 	andStr := ``
 	for i, col := range cols {
-		andStr = andStr + col + " " + ops[i] + " "+ vals[i] + ` and `
+		andStr = andStr + col + " " + ops[i] + " " + vals[i] + ` and `
 	}
 	if len(andStr) > 4 {
 		andStr = andStr[:len(andStr)-5]
@@ -919,7 +921,7 @@ func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (cols []stri
 			r := strings.Trim(str[2:], " ")
 			index := strings.Index(r, " ")
 			ops = append(ops, r[:index])
-			vals = append(vals, r[index + 1:])
+			vals = append(vals, r[index+1:])
 		} else {
 			ops = append(ops, "=")
 			vals = append(vals, "?")
@@ -928,7 +930,6 @@ func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (cols []stri
 	}
 	return
 }
-
 
 func (mysql *builderClass) MustBuildWhere(where interface{}) ([]interface{}, string) {
 	paramArgs, str, err := mysql.BuildWhere(where)
