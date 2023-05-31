@@ -353,7 +353,7 @@ func (mysql *MysqlClass) MustRawSelect(dest interface{}, sql string, values ...i
 }
 
 func (mysql *MysqlClass) RawSelect(dest interface{}, sql string, values ...interface{}) error {
-	if strings.HasPrefix(sql, `select *`) { // 只支持固定前缀的select *
+	if strings.HasPrefix(sql, `select *`) {
 		sql = `select ` + strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`) + sql[8:]
 	}
 	sql, values, err := mysql.processValues(sql, values)
@@ -657,6 +657,9 @@ func (mysql *MysqlClass) MustRawSelectFirst(dest interface{}, sql string, values
 }
 
 func (mysql *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...interface{}) (bool, error) {
+	if strings.HasPrefix(sql, `select *`) {
+		sql = `select ` + strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`) + sql[8:]
+	}
 	sql, values, err := mysql.processValues(sql, values)
 	mysql.printDebugInfo(sql, values)
 	if err != nil {
