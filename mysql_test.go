@@ -20,9 +20,16 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 		{
 			`bnn`: `345`,
 		},
-	}, "where ")
+	})
 	test.Equal(t, true, strings.HasPrefix(sql, "update table set "))
 	test.Equal(t, 5, len(params))
+
+	sql1, params1 := builder.MustBuildUpdateSql(`table`, map[string]interface{}{
+		`a`: 123,
+		`c`: `hfhd`,
+	}, `where b = ? and f = ?`, 23, 19)
+	test.Equal(t, "update table set a = ?,c = ? where b = ? and f = ?", sql1)
+	test.Equal(t, 4, len(params1))
 }
 
 func TestBuilderClass_BuildInsertSql(t *testing.T) {
@@ -92,7 +99,7 @@ func TestBuilderClass_BuildWhere(t *testing.T) {
 		`a`: 123,
 		`c`: `hfhd`,
 		`b`: `s:in ("haha","hehe")`,
-	})
+	}, nil)
 	test.Equal(t, true, strings.HasPrefix(sql, "where "))
 	test.Equal(t, 2, len(args))
 
@@ -104,11 +111,14 @@ func TestBuilderClass_BuildWhere(t *testing.T) {
 		A: `35`,
 		B: `765`,
 		C: nil,
-	})
+	}, nil)
 	test.Equal(t, true, strings.HasPrefix(sql1, "where "))
 	test.Equal(t, 2, len(args1))
-}
 
+	args2, sql2 := builder.MustBuildWhere(`where a = ? and b = ?`, []interface{}{"1", "2"})
+	test.Equal(t, "where a = ? and b = ?", sql2)
+	test.Equal(t, 2, len(args2))
+}
 
 func TestBuilderClass_BuildInsertSql1(t *testing.T) {
 	builder := builderClass{}
@@ -141,7 +151,7 @@ func TestMysqlClass_processValues(t *testing.T) {
 		logger:  go_logger.DefaultLogger,
 	}
 	sql, params, err := mysql.processValues("select * from test where a in (?) and b = ?", []interface{}{
-		[]string{"123","456"},
+		[]string{"123", "456"},
 		6345,
 	})
 	test.Equal(t, nil, err)

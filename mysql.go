@@ -853,7 +853,7 @@ func (mysql *builderClass) BuildCountSql(tableName string, args ...interface{}) 
 	var paramArgs = []interface{}{}
 	if len(args) > 0 && args[0] != nil {
 		var err error
-		paramArgs, whereStr, err = mysql.BuildWhere(args[0])
+		paramArgs, whereStr, err = mysql.BuildWhere(args[0], args[1:])
 		if err != nil {
 			return ``, nil, err
 		}
@@ -880,7 +880,7 @@ func (mysql *builderClass) BuildSumSql(tableName string, sumTarget string, args 
 	var paramArgs = []interface{}{}
 	if len(args) > 0 && args[0] != nil {
 		var err error
-		paramArgs, whereStr, err = mysql.BuildWhere(args[0])
+		paramArgs, whereStr, err = mysql.BuildWhere(args[0], args[1:])
 		if err != nil {
 			return ``, nil, err
 		}
@@ -934,21 +934,18 @@ func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (cols []stri
 	return
 }
 
-func (mysql *builderClass) MustBuildWhere(where interface{}) ([]interface{}, string) {
-	paramArgs, str, err := mysql.BuildWhere(where)
+func (mysql *builderClass) MustBuildWhere(where interface{}, args []interface{}) ([]interface{}, string) {
+	paramArgs, str, err := mysql.BuildWhere(where, args)
 	if err != nil {
 		panic(err)
 	}
 	return paramArgs, str
 }
 
-func (mysql *builderClass) BuildWhere(where interface{}) ([]interface{}, string, error) {
+func (mysql *builderClass) BuildWhere(where interface{}, args []interface{}) ([]interface{}, string, error) {
 	type_ := reflect.TypeOf(where)
 	kind := type_.Kind()
-	paramArgs := []interface{}{}
-	if kind == reflect.String {
-		return paramArgs, where.(string), nil
-	}
+	paramArgs := args
 	whereStr := `where `
 	str := ``
 	if kind == reflect.Map {
@@ -992,6 +989,8 @@ func (mysql *builderClass) BuildWhere(where interface{}) ([]interface{}, string,
 		if len(whereStr) > 3 {
 			whereStr = whereStr[:len(whereStr)-4]
 		}
+	} else if kind == reflect.String {
+		return paramArgs, where.(string), nil
 	} else {
 		return nil, ``, errors.New(`where type error`)
 	}
@@ -1011,7 +1010,7 @@ func (mysql *builderClass) BuildSelectSql(tableName string, select_ string, args
 	var paramArgs = []interface{}{}
 	if len(args) > 0 && args[0] != nil {
 		var err error
-		paramArgs, whereStr, err = mysql.BuildWhere(args[0])
+		paramArgs, whereStr, err = mysql.BuildWhere(args[0], args[1:])
 		if err != nil {
 			return ``, nil, err
 		}
@@ -1106,7 +1105,7 @@ func (mysql *builderClass) BuildUpdateSql(tableName string, update interface{}, 
 
 	var whereStr = ``
 	if len(args) > 0 && args[0] != nil {
-		paramArgsTemp, whereStrTemp, err := mysql.BuildWhere(args[0])
+		paramArgsTemp, whereStrTemp, err := mysql.BuildWhere(args[0], args[1:])
 		if err != nil {
 			return ``, nil, err
 		}
