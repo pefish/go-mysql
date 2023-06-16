@@ -1016,29 +1016,11 @@ func (mysql *builderClass) BuildSelectSql(tableName string, select_ string, args
 		}
 	}
 
-	orderByStr := ``
-	if len(args) > 1 && args[1] != nil {
-		orderByStr = args[1].(string)
-	}
-
-	limitStr := ``
-	if len(args) > 2 && args[2] != nil {
-		limitStr = args[2].(string)
-	}
-
-	forUpdateStr := ``
-	if len(args) > 3 && args[3] == true {
-		forUpdateStr = `for update`
-	}
-
 	str := fmt.Sprintf(
-		`select %s from %s %s %s %s %s`,
+		`select %s from %s %s`,
 		select_,
 		tableName,
 		whereStr,
-		orderByStr,
-		limitStr,
-		forUpdateStr,
 	)
 	return str, paramArgs, nil
 }
