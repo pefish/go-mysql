@@ -1,6 +1,7 @@
 package go_mysql
 
 import (
+	"fmt"
 	go_logger "github.com/pefish/go-logger"
 	"github.com/pefish/go-test-assert"
 	"strings"
@@ -118,6 +119,7 @@ func TestBuilderClass_BuildWhere(t *testing.T) {
 	args2, sql2 := builder.MustBuildWhere(`where a = ? and b = ?`, []interface{}{"1", "2"})
 	test.Equal(t, "where a = ? and b = ?", sql2)
 	test.Equal(t, 2, len(args2))
+
 }
 
 func TestBuilderClass_BuildInsertSql1(t *testing.T) {
@@ -157,4 +159,14 @@ func TestMysqlClass_processValues(t *testing.T) {
 	test.Equal(t, nil, err)
 	test.Equal(t, "select * from test where a in (?, ?) and b = ?", sql)
 	test.Equal(t, 3, len(params))
+}
+
+func Test_builderClass_BuildSelectSql(t *testing.T) {
+	builder := builderClass{}
+	sql, params := builder.MustBuildSelectSql(`table`, `*`, map[string]interface{}{
+		"id": "s: in (1,2)",
+	})
+	//test.Equal(t, true, strings.HasPrefix(sql, "insert into table "))
+	//test.Equal(t, 3, len(params))
+	fmt.Println(sql, params)
 }

@@ -37,6 +37,7 @@ type IMysql interface {
 	RawSelect(dest interface{}, sql string, values ...interface{}) error
 	MustCount(tableName string, args ...interface{}) uint64
 	Count(tableName string, args ...interface{}) (uint64, error)
+	RawCount(tableName string, args ...interface{}) (uint64, error)
 	MustSum(tableName string, sumTarget string, args ...interface{}) string
 	Sum(tableName string, sumTarget string, args ...interface{}) (string, error)
 	MustSelectFirst(dest interface{}, tableName string, select_ string, args ...interface{}) bool
@@ -389,6 +390,26 @@ func (mysql *MysqlClass) Count(tableName string, args ...interface{}) (uint64, e
 		return 0, err
 	}
 	_, err = mysql.RawSelectFirst(&countStruct, sql, paramArgs...)
+	if err != nil {
+		return 0, err
+	}
+	return countStruct.Count, nil
+}
+
+func (mysql *MysqlClass) RawCount(sql string, values ...interface{}) (uint64, error) {
+	var countStruct struct {
+		Count uint64 `json:"count"`
+	}
+	sql, values, err := mysql.processValues(sql, values)
+	mysql.printDebugInfo(sql, values)
+	if err != nil {
+		return 0, err
+	}
+	if mysql.Tx != nil {
+		err = mysql.Tx.Select(&countStruct, sql, values...)
+	} else {
+		err = mysql.Db.Select(&countStruct, sql, values...)
+	}
 	if err != nil {
 		return 0, err
 	}
