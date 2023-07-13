@@ -815,16 +815,14 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 		}
 		q := squirrel.Insert(tableName).Columns(cols...)
 		for i := 0; i < value_.Len(); i++ {
+
 			map_, err := mysql.structToMap(value_.Index(i).Interface())
 			if err != nil {
 				return ``, nil, err
 			}
 			vals := make([]interface{}, 0, 5)
-			for _, val := range map_ {
-				if val == nil {
-					continue
-				}
-				vals = append(vals, val)
+			for _, colName := range cols {
+				vals = append(vals, map_[colName])
 			}
 			q = q.Values(vals...)
 		}

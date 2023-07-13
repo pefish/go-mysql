@@ -46,14 +46,22 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 		{
 			`a`: 123,
 			`c`: `hfhd`,
+			`b`: 431,
 		},
 		{
 			`a`: 345,
 			`c`: `aaa`,
+			`b`: 524,
+		},
+		{
+			`a`: 444,
+			`c`: `qqq`,
+			`b`: 111,
 		},
 	}, buildInsertSqlOpt{})
+	//fmt.Println(sql1, params1)
 	test.Equal(t, true, strings.HasPrefix(sql1, "INSERT INTO table "))
-	test.Equal(t, 4, len(params1))
+	test.Equal(t, 9, len(params1))
 
 	type Test struct {
 		A string `json:"a"`
