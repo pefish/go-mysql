@@ -119,7 +119,7 @@ func (mc *MysqlClass) Close() {
 		if err != nil {
 			mc.logger.Error(err)
 		} else {
-			mc.logger.Info(`mc close succeed.`)
+			mc.logger.Info(`mysql close succeed.`)
 		}
 	}
 	if mc.Tx != nil {
@@ -238,7 +238,7 @@ func (mc *MysqlClass) Connect(host string, port uint64, username string, passwor
 		d = *database
 	}
 	address := fmt.Sprintf(`%s:%d`, host, port)
-	mc.logger.Info(fmt.Sprintf(`mc connecting... url: %s`, address))
+	mc.logger.Info(fmt.Sprintf(`mysql connecting... url: %s`, address))
 	connUrl := fmt.Sprintf(
 		`%s:%s@tcp(%s)/%s?charset=utf8&parseTime=true&multiStatements=true&loc=UTC`,
 		username,
@@ -246,12 +246,12 @@ func (mc *MysqlClass) Connect(host string, port uint64, username string, passwor
 		address,
 		d,
 	)
-	db, err := sqlx.Connect(`mc`, connUrl)
+	db, err := sqlx.Connect(`mysql`, connUrl)
 	if err != nil {
 		return err
 	}
 	db.SetTagName(mc.tagName)
-	mc.logger.Info(fmt.Sprintf(`mc connect succeed. url: %s`, address))
+	mc.logger.Info(fmt.Sprintf(`mysql connect succeed. url: %s`, address))
 	db.DB.SetMaxOpenConns(int(maxOpenConns))  // 用于设置最大打开的连接数，默认值为0表示不限制
 	db.DB.SetMaxIdleConns(int(maxIdleConns))  // 用于设置闲置的连接数
 	db.DB.SetConnMaxLifetime(connMaxLifetime) // 设置一个超时时间，时间小于数据库的超时时间即可
