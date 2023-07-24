@@ -178,3 +178,20 @@ func Test_builderClass_BuildSelectSql(t *testing.T) {
 	//test.Equal(t, 3, len(params))
 	fmt.Println(sql, params)
 }
+
+func TestMysqlClass_correctSelectStar(t *testing.T) {
+	mysql := &MysqlClass{
+		tagName: `json`,
+		logger:  go_logger.DefaultLogger,
+	}
+	var testObj struct {
+		A   string `json:"a"`
+		Abc string `json:"abc"`
+	}
+	sql := mysql.correctSelectStar(&testObj, `
+
+  
+ 	select * from abc
+`)
+	test.Equal(t, "select a,abc from abc\n", sql)
+}

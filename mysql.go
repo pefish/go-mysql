@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"reflect"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -106,39 +105,39 @@ type MysqlClass struct {
 	logger  go_logger.InterfaceLogger
 }
 
-func (mysql *MysqlClass) TagName() string {
-	return mysql.tagName
+func (mc *MysqlClass) TagName() string {
+	return mc.tagName
 }
 
-func (mysql *MysqlClass) SetLogger(logger go_logger.InterfaceLogger) {
-	mysql.logger = logger
+func (mc *MysqlClass) SetLogger(logger go_logger.InterfaceLogger) {
+	mc.logger = logger
 }
 
-func (mysql *MysqlClass) Close() {
-	if mysql.Db != nil {
-		err := mysql.Db.Close()
+func (mc *MysqlClass) Close() {
+	if mc.Db != nil {
+		err := mc.Db.Close()
 		if err != nil {
-			mysql.logger.Error(err)
+			mc.logger.Error(err)
 		} else {
-			mysql.logger.Info(`mysql close succeed.`)
+			mc.logger.Info(`mc close succeed.`)
 		}
 	}
-	if mysql.Tx != nil {
-		err := mysql.Tx.Rollback()
+	if mc.Tx != nil {
+		err := mc.Tx.Rollback()
 		if err != nil {
-			mysql.logger.Error(err)
+			mc.logger.Error(err)
 		}
 	}
 }
 
-func (mysql *MysqlClass) MustConnectWithConfiguration(configuration Configuration) {
-	err := mysql.ConnectWithConfiguration(configuration)
+func (mc *MysqlClass) MustConnectWithConfiguration(configuration Configuration) {
+	err := mc.ConnectWithConfiguration(configuration)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (mysql *MysqlClass) ConnectWithConfiguration(configuration Configuration) error {
+func (mc *MysqlClass) ConnectWithConfiguration(configuration Configuration) error {
 	var port = DEFAULT_PORT
 	if configuration.Port != nil {
 		port_, err := go_reflect.Reflect.ToUint64(configuration.Port)
@@ -173,21 +172,21 @@ func (mysql *MysqlClass) ConnectWithConfiguration(configuration Configuration) e
 		connMaxLifetime = configuration.ConnMaxLifetime.(time.Duration)
 	}
 
-	err := mysql.Connect(configuration.Host, port, configuration.Username, configuration.Password, database, maxOpenConns, maxIdleConns, connMaxLifetime)
+	err := mc.Connect(configuration.Host, port, configuration.Username, configuration.Password, database, maxOpenConns, maxIdleConns, connMaxLifetime)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (mysql *MysqlClass) MustConnectWithMap(map_ map[string]interface{}) {
-	err := mysql.ConnectWithMap(map_)
+func (mc *MysqlClass) MustConnectWithMap(map_ map[string]interface{}) {
+	err := mc.ConnectWithMap(map_)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (mysql *MysqlClass) ConnectWithMap(map_ map[string]interface{}) error {
+func (mc *MysqlClass) ConnectWithMap(map_ map[string]interface{}) error {
 	var port = DEFAULT_PORT
 	if map_[`port`] != nil {
 		port_, err := go_reflect.Reflect.ToUint64(map_[`port`])
@@ -226,20 +225,20 @@ func (mysql *MysqlClass) ConnectWithMap(map_ map[string]interface{}) error {
 		connMaxLifetime = time.Duration(connMaxLifeTime_) * time.Second
 	}
 
-	err := mysql.Connect(map_[`host`].(string), port, map_[`username`].(string), map_[`password`].(string), database, maxOpenConns, maxIdleConns, connMaxLifetime)
+	err := mc.Connect(map_[`host`].(string), port, map_[`username`].(string), map_[`password`].(string), database, maxOpenConns, maxIdleConns, connMaxLifetime)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (mysql *MysqlClass) Connect(host string, port uint64, username string, password string, database *string, maxOpenConns uint64, maxIdleConns uint64, connMaxLifetime time.Duration) error {
+func (mc *MysqlClass) Connect(host string, port uint64, username string, password string, database *string, maxOpenConns uint64, maxIdleConns uint64, connMaxLifetime time.Duration) error {
 	d := ``
 	if database != nil {
 		d = *database
 	}
 	address := fmt.Sprintf(`%s:%d`, host, port)
-	mysql.logger.Info(fmt.Sprintf(`mysql connecting... url: %s`, address))
+	mc.logger.Info(fmt.Sprintf(`mc connecting... url: %s`, address))
 	connUrl := fmt.Sprintf(
 		`%s:%s@tcp(%s)/%s?charset=utf8&parseTime=true&multiStatements=true&loc=UTC`,
 		username,
@@ -247,52 +246,52 @@ func (mysql *MysqlClass) Connect(host string, port uint64, username string, pass
 		address,
 		d,
 	)
-	db, err := sqlx.Connect(`mysql`, connUrl)
+	db, err := sqlx.Connect(`mc`, connUrl)
 	if err != nil {
 		return err
 	}
-	db.SetTagName(mysql.tagName)
-	mysql.logger.Info(fmt.Sprintf(`mysql connect succeed. url: %s`, address))
+	db.SetTagName(mc.tagName)
+	mc.logger.Info(fmt.Sprintf(`mc connect succeed. url: %s`, address))
 	db.DB.SetMaxOpenConns(int(maxOpenConns))  // 用于设置最大打开的连接数，默认值为0表示不限制
 	db.DB.SetMaxIdleConns(int(maxIdleConns))  // 用于设置闲置的连接数
 	db.DB.SetConnMaxLifetime(connMaxLifetime) // 设置一个超时时间，时间小于数据库的超时时间即可
-	mysql.Db = db
+	mc.Db = db
 
 	return nil
 }
 
-func (mysql *MysqlClass) printDebugInfo(sql string, values interface{}) {
+func (mc *MysqlClass) printDebugInfo(sql string, values interface{}) {
 	txInfo := ``
-	if mysql.Tx != nil {
-		txInfo = fmt.Sprintf(`[transaction id: %s] `, mysql.TxId)
+	if mc.Tx != nil {
+		txInfo = fmt.Sprintf(`[transaction id: %s] `, mc.TxId)
 	}
-	mysql.logger.DebugF(`%s%s, %v`, txInfo, sql, values)
+	mc.logger.DebugF(`%s%s, %v`, txInfo, sql, values)
 }
 
-func (mysql *MysqlClass) MustRawSelectByStr(dest interface{}, select_ string, str string, values ...interface{}) {
-	err := mysql.RawSelectByStr(dest, select_, str, values...)
+func (mc *MysqlClass) MustRawSelectByStr(dest interface{}, select_ string, str string, values ...interface{}) {
+	err := mc.RawSelectByStr(dest, select_, str, values...)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (mysql *MysqlClass) RawSelectByStr(dest interface{}, select_ string, str string, values ...interface{}) error {
+func (mc *MysqlClass) RawSelectByStr(dest interface{}, select_ string, str string, values ...interface{}) error {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
 	}
 	sql := fmt.Sprintf(
 		`select %s %s`,
 		select_,
 		str,
 	)
-	err := mysql.RawSelect(dest, sql, values...)
+	err := mc.RawSelect(dest, sql, values...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (mysql *MysqlClass) processValues(sql string, values []interface{}) (string, []interface{}, error) {
+func (mc *MysqlClass) processValues(sql string, values []interface{}) (string, []interface{}, error) {
 	hasArr := false
 	for _, v := range values {
 		rt := reflect.TypeOf(v)
@@ -311,26 +310,26 @@ func (mysql *MysqlClass) processValues(sql string, values []interface{}) (string
 	return sql, values, nil
 }
 
-func (mysql *MysqlClass) MustRawExec(sql string, values ...interface{}) (uint64, uint64) {
-	lastInsertId, rowsAffected, err := mysql.RawExec(sql, values...)
+func (mc *MysqlClass) MustRawExec(sql string, values ...interface{}) (uint64, uint64) {
+	lastInsertId, rowsAffected, err := mc.RawExec(sql, values...)
 	if err != nil {
 		panic(err)
 	}
 	return lastInsertId, rowsAffected
 }
 
-func (mysql *MysqlClass) RawExec(sql string, values ...interface{}) (uint64, uint64, error) {
-	sql, values, err := mysql.processValues(sql, values)
-	mysql.printDebugInfo(sql, values)
+func (mc *MysqlClass) RawExec(sql string, values ...interface{}) (uint64, uint64, error) {
+	sql, values, err := mc.processValues(sql, values)
+	mc.printDebugInfo(sql, values)
 	if err != nil {
 		return 0, 0, err
 	}
 
 	var result sql2.Result
-	if mysql.Tx != nil {
-		result, err = mysql.Tx.Exec(sql, values...)
+	if mc.Tx != nil {
+		result, err = mc.Tx.Exec(sql, values...)
 	} else {
-		result, err = mysql.Db.Exec(sql, values...)
+		result, err = mc.Db.Exec(sql, values...)
 	}
 	if err != nil {
 		return 0, 0, err
@@ -346,26 +345,33 @@ func (mysql *MysqlClass) RawExec(sql string, values ...interface{}) (uint64, uin
 	return uint64(lastInsertId), uint64(rowsAffected), nil
 }
 
-func (mysql *MysqlClass) MustRawSelect(dest interface{}, sql string, values ...interface{}) {
-	err := mysql.RawSelect(dest, sql, values...)
+func (mc *MysqlClass) MustRawSelect(dest interface{}, sql string, values ...interface{}) {
+	err := mc.RawSelect(dest, sql, values...)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (mysql *MysqlClass) RawSelect(dest interface{}, sql string, values ...interface{}) error {
+func (mc *MysqlClass) correctSelectStar(dest interface{}, sql string) string {
+	sql = strings.TrimLeft(sql, " \n\t")
 	if strings.HasPrefix(sql, `select *`) {
-		sql = `select ` + strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`) + sql[8:]
+		return `select ` + strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`) + sql[8:]
 	}
-	sql, values, err := mysql.processValues(sql, values)
-	mysql.printDebugInfo(sql, values)
+
+	return sql
+}
+
+func (mc *MysqlClass) RawSelect(dest interface{}, sql string, values ...interface{}) error {
+	sql = mc.correctSelectStar(dest, sql)
+	sql, values, err := mc.processValues(sql, values)
+	mc.printDebugInfo(sql, values)
 	if err != nil {
 		return err
 	}
-	if mysql.Tx != nil {
-		err = mysql.Tx.Select(dest, sql, values...)
+	if mc.Tx != nil {
+		err = mc.Tx.Select(dest, sql, values...)
 	} else {
-		err = mysql.Db.Select(dest, sql, values...)
+		err = mc.Db.Select(dest, sql, values...)
 	}
 	if err != nil {
 		return err
@@ -373,15 +379,15 @@ func (mysql *MysqlClass) RawSelect(dest interface{}, sql string, values ...inter
 	return nil
 }
 
-func (mysql *MysqlClass) MustCount(tableName string, args ...interface{}) uint64 {
-	result, err := mysql.Count(tableName, args...)
+func (mc *MysqlClass) MustCount(tableName string, args ...interface{}) uint64 {
+	result, err := mc.Count(tableName, args...)
 	if err != nil {
 		panic(err)
 	}
 	return result
 }
 
-func (mysql *MysqlClass) Count(tableName string, args ...interface{}) (uint64, error) {
+func (mc *MysqlClass) Count(tableName string, args ...interface{}) (uint64, error) {
 	var countStruct struct {
 		Count uint64 `json:"count"`
 	}
@@ -389,26 +395,26 @@ func (mysql *MysqlClass) Count(tableName string, args ...interface{}) (uint64, e
 	if err != nil {
 		return 0, err
 	}
-	_, err = mysql.RawSelectFirst(&countStruct, sql, paramArgs...)
+	_, err = mc.RawSelectFirst(&countStruct, sql, paramArgs...)
 	if err != nil {
 		return 0, err
 	}
 	return countStruct.Count, nil
 }
 
-func (mysql *MysqlClass) RawCount(sql string, values ...interface{}) (uint64, error) {
+func (mc *MysqlClass) RawCount(sql string, values ...interface{}) (uint64, error) {
 	var countStruct struct {
 		Count uint64 `json:"count"`
 	}
-	sql, values, err := mysql.processValues(sql, values)
-	mysql.printDebugInfo(sql, values)
+	sql, values, err := mc.processValues(sql, values)
+	mc.printDebugInfo(sql, values)
 	if err != nil {
 		return 0, err
 	}
-	if mysql.Tx != nil {
-		err = mysql.Tx.Select(&countStruct, sql, values...)
+	if mc.Tx != nil {
+		err = mc.Tx.Select(&countStruct, sql, values...)
 	} else {
-		err = mysql.Db.Select(&countStruct, sql, values...)
+		err = mc.Db.Select(&countStruct, sql, values...)
 	}
 	if err != nil {
 		return 0, err
@@ -416,15 +422,15 @@ func (mysql *MysqlClass) RawCount(sql string, values ...interface{}) (uint64, er
 	return countStruct.Count, nil
 }
 
-func (mysql *MysqlClass) MustSum(tableName string, sumTarget string, args ...interface{}) string {
-	result, err := mysql.Sum(tableName, sumTarget, args...)
+func (mc *MysqlClass) MustSum(tableName string, sumTarget string, args ...interface{}) string {
+	result, err := mc.Sum(tableName, sumTarget, args...)
 	if err != nil {
 		panic(err)
 	}
 	return result
 }
 
-func (mysql *MysqlClass) Sum(tableName string, sumTarget string, args ...interface{}) (string, error) {
+func (mc *MysqlClass) Sum(tableName string, sumTarget string, args ...interface{}) (string, error) {
 	var sumStruct struct {
 		Sum *string `json:"sum"`
 	}
@@ -432,7 +438,7 @@ func (mysql *MysqlClass) Sum(tableName string, sumTarget string, args ...interfa
 	if err != nil {
 		return ``, err
 	}
-	_, err = mysql.RawSelectFirst(&sumStruct, sql, paramArgs...)
+	_, err = mc.RawSelectFirst(&sumStruct, sql, paramArgs...)
 	if err != nil {
 		return ``, err
 	}
@@ -442,26 +448,26 @@ func (mysql *MysqlClass) Sum(tableName string, sumTarget string, args ...interfa
 	return *sumStruct.Sum, nil
 }
 
-func (mysql *MysqlClass) MustSelectFirst(dest interface{}, tableName string, select_ string, args ...interface{}) bool {
-	bool_, err := mysql.SelectFirst(dest, tableName, select_, args...)
+func (mc *MysqlClass) MustSelectFirst(dest interface{}, tableName string, select_ string, args ...interface{}) bool {
+	bool_, err := mc.SelectFirst(dest, tableName, select_, args...)
 	if err != nil {
 		panic(err)
 	}
 	return bool_
 }
 
-func (mysql *MysqlClass) SelectFirst(dest interface{}, tableName string, select_ string, args ...interface{}) (bool, error) {
+func (mc *MysqlClass) SelectFirst(dest interface{}, tableName string, select_ string, args ...interface{}) (bool, error) {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
 	}
 	sql, paramArgs, err := builder.BuildSelectSql(tableName, select_, args...)
 	if err != nil {
 		return true, err
 	}
-	return mysql.RawSelectFirst(dest, sql, paramArgs...)
+	return mc.RawSelectFirst(dest, sql, paramArgs...)
 }
 
-func (mysql *MysqlClass) SelectFieldStrFirst(fieldName string, tableName string, args ...interface{}) (bool, *string, error) {
+func (mc *MysqlClass) SelectFieldStrFirst(fieldName string, tableName string, args ...interface{}) (bool, *string, error) {
 	sql, paramArgs, err := builder.BuildSelectSql(tableName, fmt.Sprintf("%s as target", fieldName), args...)
 	if err != nil {
 		return true, nil, err
@@ -469,24 +475,24 @@ func (mysql *MysqlClass) SelectFieldStrFirst(fieldName string, tableName string,
 	var targetStruct struct {
 		Target *string `json:"target"`
 	}
-	notFound, err := mysql.RawSelectFirst(&targetStruct, sql, paramArgs...)
+	notFound, err := mc.RawSelectFirst(&targetStruct, sql, paramArgs...)
 	if err != nil || notFound {
 		return notFound, nil, err
 	}
 	return false, targetStruct.Target, nil
 }
 
-func (mysql *MysqlClass) MustSelectFirstByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) bool {
-	bool_, err := mysql.SelectFirstByStr(dest, tableName, select_, str, values...)
+func (mc *MysqlClass) MustSelectFirstByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) bool {
+	bool_, err := mc.SelectFirstByStr(dest, tableName, select_, str, values...)
 	if err != nil {
 		panic(err)
 	}
 	return bool_
 }
 
-func (mysql *MysqlClass) SelectFirstByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) (bool, error) {
+func (mc *MysqlClass) SelectFirstByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) (bool, error) {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
 	}
 	sql := fmt.Sprintf(
 		`select %s from %s %s`,
@@ -494,20 +500,20 @@ func (mysql *MysqlClass) SelectFirstByStr(dest interface{}, tableName string, se
 		tableName,
 		str,
 	)
-	return mysql.RawSelectFirst(dest, sql, values...)
+	return mc.RawSelectFirst(dest, sql, values...)
 }
 
-func (mysql *MysqlClass) MustSelectById(dest interface{}, tableName string, select_ string, id uint64, forUpdate bool) bool {
-	bool_, err := mysql.SelectById(dest, tableName, select_, id, forUpdate)
+func (mc *MysqlClass) MustSelectById(dest interface{}, tableName string, select_ string, id uint64, forUpdate bool) bool {
+	bool_, err := mc.SelectById(dest, tableName, select_, id, forUpdate)
 	if err != nil {
 		panic(err)
 	}
 	return bool_
 }
 
-func (mysql *MysqlClass) SelectById(dest interface{}, tableName string, select_ string, id uint64, forUpdate bool) (notFound bool, err error) {
+func (mc *MysqlClass) SelectById(dest interface{}, tableName string, select_ string, id uint64, forUpdate bool) (notFound bool, err error) {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
 	}
 	var paramArgs = []interface{}{}
 	sql, paramArgs, err := builder.BuildSelectSql(tableName, select_, map[string]interface{}{
@@ -516,42 +522,42 @@ func (mysql *MysqlClass) SelectById(dest interface{}, tableName string, select_ 
 	if err != nil {
 		return true, err
 	}
-	return mysql.RawSelectFirst(dest, sql, paramArgs...)
+	return mc.RawSelectFirst(dest, sql, paramArgs...)
 }
 
-func (mysql *MysqlClass) MustSelect(dest interface{}, tableName string, select_ string, args ...interface{}) {
-	err := mysql.Select(dest, tableName, select_, args...)
+func (mc *MysqlClass) MustSelect(dest interface{}, tableName string, select_ string, args ...interface{}) {
+	err := mc.Select(dest, tableName, select_, args...)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (mysql *MysqlClass) Select(dest interface{}, tableName string, select_ string, args ...interface{}) error {
+func (mc *MysqlClass) Select(dest interface{}, tableName string, select_ string, args ...interface{}) error {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
 	}
 	var paramArgs = []interface{}{}
 	sql, paramArgs, err := builder.BuildSelectSql(tableName, select_, args...)
 	if err != nil {
 		return err
 	}
-	err = mysql.RawSelect(dest, sql, paramArgs...)
+	err = mc.RawSelect(dest, sql, paramArgs...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (mysql *MysqlClass) MustSelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) {
-	err := mysql.SelectByStr(dest, tableName, select_, str, values...)
+func (mc *MysqlClass) MustSelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) {
+	err := mc.SelectByStr(dest, tableName, select_, str, values...)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (mysql *MysqlClass) SelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) error {
+func (mc *MysqlClass) SelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) error {
 	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`)
+		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
 	}
 	sql := fmt.Sprintf(
 		`select %s from %s %s`,
@@ -559,15 +565,15 @@ func (mysql *MysqlClass) SelectByStr(dest interface{}, tableName string, select_
 		tableName,
 		str,
 	)
-	err := mysql.RawSelect(dest, sql, values...)
+	err := mc.RawSelect(dest, sql, values...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (mysql *MysqlClass) MustAffectedInsert(tableName string, params interface{}) (lastInsertId uint64) {
-	lastInsertId, rowsAffected, err := mysql.Insert(tableName, params)
+func (mc *MysqlClass) MustAffectedInsert(tableName string, params interface{}) (lastInsertId uint64) {
+	lastInsertId, rowsAffected, err := mc.Insert(tableName, params)
 	if err != nil {
 		panic(err)
 	}
@@ -577,41 +583,41 @@ func (mysql *MysqlClass) MustAffectedInsert(tableName string, params interface{}
 	return lastInsertId
 }
 
-func (mysql *MysqlClass) MustInsert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
-	lastInsertId, rowsAffected, err := mysql.Insert(tableName, params)
+func (mc *MysqlClass) MustInsert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
+	lastInsertId, rowsAffected, err := mc.Insert(tableName, params)
 	if err != nil {
 		panic(err)
 	}
 	return lastInsertId, rowsAffected
 }
 
-func (mysql *MysqlClass) Insert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
+func (mc *MysqlClass) Insert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
 	sql, paramArgs, err := builder.BuildInsertSql(tableName, params, buildInsertSqlOpt{})
 	if err != nil {
 		return 0, 0, err
 	}
-	return mysql.RawExec(sql, paramArgs...)
+	return mc.RawExec(sql, paramArgs...)
 }
 
-func (mysql *MysqlClass) MustInsertIgnore(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
-	lastInsertId, rowsAffected, err := mysql.InsertIgnore(tableName, params)
+func (mc *MysqlClass) MustInsertIgnore(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
+	lastInsertId, rowsAffected, err := mc.InsertIgnore(tableName, params)
 	if err != nil {
 		panic(err)
 	}
 	return lastInsertId, rowsAffected
 }
 
-func (mysql *MysqlClass) InsertIgnore(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
+func (mc *MysqlClass) InsertIgnore(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
 	sql, paramArgs, err := builder.BuildInsertSql(tableName, params, buildInsertSqlOpt{
 		InsertIgnore: true,
 	})
 	if err != nil {
 		return 0, 0, err
 	}
-	return mysql.RawExec(sql, paramArgs...)
+	return mc.RawExec(sql, paramArgs...)
 }
 
-func (mysql *MysqlClass) InsertOnDuplicateKeyUpdate(tableName string, update map[string]interface{}, otherParams map[string]interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
+func (mc *MysqlClass) InsertOnDuplicateKeyUpdate(tableName string, update map[string]interface{}, otherParams map[string]interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
 	for k, v := range update {
 		otherParams[k] = v
 	}
@@ -621,45 +627,45 @@ func (mysql *MysqlClass) InsertOnDuplicateKeyUpdate(tableName string, update map
 	if err != nil {
 		return 0, 0, err
 	}
-	return mysql.RawExec(sql, paramArgs...)
+	return mc.RawExec(sql, paramArgs...)
 }
 
-func (mysql *MysqlClass) MustReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
-	lastInsertId, rowsAffected, err := mysql.ReplaceInto(tableName, params)
+func (mc *MysqlClass) MustReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
+	lastInsertId, rowsAffected, err := mc.ReplaceInto(tableName, params)
 	if err != nil {
 		panic(err)
 	}
 	return lastInsertId, rowsAffected
 }
 
-func (mysql *MysqlClass) ReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
+func (mc *MysqlClass) ReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
 	sql, paramArgs, err := builder.BuildInsertSql(tableName, params, buildInsertSqlOpt{
 		ReplaceInto: true,
 	})
 	if err != nil {
 		return 0, 0, err
 	}
-	return mysql.RawExec(sql, paramArgs...)
+	return mc.RawExec(sql, paramArgs...)
 }
 
-func (mysql *MysqlClass) MustUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64) {
-	lastInsertId, rowsAffected, err := mysql.Update(tableName, update, args...)
+func (mc *MysqlClass) MustUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64) {
+	lastInsertId, rowsAffected, err := mc.Update(tableName, update, args...)
 	if err != nil {
 		panic(err)
 	}
 	return lastInsertId, rowsAffected
 }
 
-func (mysql *MysqlClass) Update(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
+func (mc *MysqlClass) Update(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
 	sql, paramArgs, err := builder.BuildUpdateSql(tableName, update, args...)
 	if err != nil {
 		return 0, 0, err
 	}
-	return mysql.RawExec(sql, paramArgs...)
+	return mc.RawExec(sql, paramArgs...)
 }
 
-func (mysql *MysqlClass) MustAffectedUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64) {
-	lastInsertId, rowsAffected, err := mysql.Update(tableName, update, args...)
+func (mc *MysqlClass) MustAffectedUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64) {
+	lastInsertId, rowsAffected, err := mc.Update(tableName, update, args...)
 	if err != nil {
 		panic(err)
 	}
@@ -669,28 +675,26 @@ func (mysql *MysqlClass) MustAffectedUpdate(tableName string, update interface{}
 	return lastInsertId
 }
 
-func (mysql *MysqlClass) MustRawSelectFirst(dest interface{}, sql string, values ...interface{}) bool {
-	notFound, err := mysql.RawSelectFirst(dest, sql, values...)
+func (mc *MysqlClass) MustRawSelectFirst(dest interface{}, sql string, values ...interface{}) bool {
+	notFound, err := mc.RawSelectFirst(dest, sql, values...)
 	if err != nil {
 		panic(err)
 	}
 	return notFound
 }
 
-func (mysql *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...interface{}) (bool, error) {
-	if strings.HasPrefix(sql, `select *`) {
-		sql = `select ` + strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mysql.tagName), `,`) + sql[8:]
-	}
-	sql, values, err := mysql.processValues(sql, values)
-	mysql.printDebugInfo(sql, values)
+func (mc *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...interface{}) (bool, error) {
+	sql = mc.correctSelectStar(dest, sql)
+	sql, values, err := mc.processValues(sql, values)
+	mc.printDebugInfo(sql, values)
 	if err != nil {
 		return true, err
 	}
 
-	if mysql.Tx != nil {
-		err = mysql.Tx.Get(dest, sql, values...)
+	if mc.Tx != nil {
+		err = mc.Tx.Get(dest, sql, values...)
 	} else {
-		err = mysql.Db.Get(dest, sql, values...)
+		err = mc.Db.Get(dest, sql, values...)
 	}
 	if err != nil {
 		if err.Error() == `sql: no rows in result set` {
@@ -703,18 +707,18 @@ func (mysql *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...
 	return false, nil
 }
 
-func (mysql *MysqlClass) MustBegin() *MysqlClass {
-	c, err := mysql.Begin()
+func (mc *MysqlClass) MustBegin() *MysqlClass {
+	c, err := mc.Begin()
 	if err != nil {
 		panic(err)
 	}
 	return c
 }
 
-func (mysql *MysqlClass) Begin() (*MysqlClass, error) {
+func (mc *MysqlClass) Begin() (*MysqlClass, error) {
 	id := fmt.Sprintf(`%s`, uuid.NewV4())
-	mysql.printDebugInfo(`begin`, nil)
-	tx, err := mysql.Db.Beginx()
+	mc.printDebugInfo(`begin`, nil)
+	tx, err := mc.Db.Beginx()
 	if err != nil {
 		return nil, err
 	}
@@ -722,39 +726,39 @@ func (mysql *MysqlClass) Begin() (*MysqlClass, error) {
 		Db:      nil,
 		TxId:    id,
 		Tx:      tx,
-		tagName: mysql.tagName,
-		logger:  mysql.logger,
+		tagName: mc.tagName,
+		logger:  mc.logger,
 	}, nil
 }
 
-func (mysql *MysqlClass) MustCommit() {
-	err := mysql.Commit()
+func (mc *MysqlClass) MustCommit() {
+	err := mc.Commit()
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (mysql *MysqlClass) Commit() error {
-	mysql.printDebugInfo(`commit`, nil)
+func (mc *MysqlClass) Commit() error {
+	mc.printDebugInfo(`commit`, nil)
 
-	err := mysql.Tx.Commit()
+	err := mc.Tx.Commit()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (mysql *MysqlClass) MustRollback() {
-	err := mysql.Rollback()
+func (mc *MysqlClass) MustRollback() {
+	err := mc.Rollback()
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (mysql *MysqlClass) Rollback() error {
-	mysql.printDebugInfo(`rollback`, nil)
+func (mc *MysqlClass) Rollback() error {
+	mc.printDebugInfo(`rollback`, nil)
 
-	err := mysql.Tx.Rollback()
+	err := mc.Tx.Rollback()
 	if err != nil {
 		return err
 	}
@@ -851,8 +855,7 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 				continue
 			}
 			str += key + ` = ?,`
-			valStr := go_reflect.Reflect.ToString(val)
-			paramArgs = append(paramArgs, template.HTMLEscapeString(valStr))
+			paramArgs = append(paramArgs, go_reflect.Reflect.ToString(val))
 		}
 		str = strings.TrimSuffix(str, ",")
 	}
@@ -947,7 +950,7 @@ func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (cols []stri
 		} else {
 			ops = append(ops, "=")
 			vals = append(vals, "?")
-			args = append(args, template.HTMLEscapeString(str))
+			args = append(args, str)
 		}
 	}
 	return
@@ -1078,8 +1081,7 @@ func (mysql *builderClass) BuildUpdateSql(tableName string, update interface{}, 
 					continue
 				}
 				updateStr = updateStr + key + ` = ?,`
-				str := go_reflect.Reflect.ToString(val)
-				paramArgs = append(paramArgs, template.HTMLEscapeString(str))
+				paramArgs = append(paramArgs, go_reflect.Reflect.ToString(val))
 			}
 		} else {
 			return ``, nil, errors.New(`map value type error`)
@@ -1094,8 +1096,7 @@ func (mysql *builderClass) BuildUpdateSql(tableName string, update interface{}, 
 				continue
 			}
 			updateStr = updateStr + key + ` = ?,`
-			str := go_reflect.Reflect.ToString(val)
-			paramArgs = append(paramArgs, template.HTMLEscapeString(str))
+			paramArgs = append(paramArgs, go_reflect.Reflect.ToString(val))
 		}
 	} else {
 		return ``, nil, errors.New(`type error`)
