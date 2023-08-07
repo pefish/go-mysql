@@ -536,7 +536,6 @@ func (mc *MysqlClass) Select(dest interface{}, tableName string, select_ string,
 	if select_ == `*` {
 		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
 	}
-	var paramArgs = []interface{}{}
 	sql, paramArgs, err := builder.BuildSelectSql(tableName, select_, args...)
 	if err != nil {
 		return err

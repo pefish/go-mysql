@@ -243,13 +243,16 @@ func TestMysqlClass_correctSelectStar(t *testing.T) {
 	test.Equal(t, "select a,abc from abc\n", sql)
 }
 
-//func Test_builderClass_BuildSelectSql1(t *testing.T) {
-//	builder := &builderClass{}
-//	sql, params, err := builder.BuildSelectSql("select * from test where a in (?) and b = ?", []interface{}{
-//		[]string{"123", "456"},
-//		6345,
-//	})
-//	test.Equal(t, nil, err)
-//	test.Equal(t, "select * from test where a in (?, ?) and b = ?", sql)
-//	test.Equal(t, 3, len(params))
-//}
+func Test_builderClass_BuildSelectSql1(t *testing.T) {
+	builder := &builderClass{}
+	sql, params, err := builder.BuildSelectSql(
+		`table`,
+		`*`,
+		map[string]interface{}{
+			"symbol": []string{},
+		},
+	)
+	test.Equal(t, nil, err)
+	test.Equal(t, "select * from table ", sql)
+	test.Equal(t, 0, len(params))
+}
