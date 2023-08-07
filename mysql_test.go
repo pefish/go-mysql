@@ -155,6 +155,29 @@ func Test_builderClass_buildWhereFromMapInterface(t *testing.T) {
 	test.Equal(t, 1, len(params))
 }
 
+func Test_builderClass_buildWhereFromMapInterface1(t *testing.T) {
+	builder := builderClass{}
+	params, sql, err := builder.buildWhereFromMap(map[string]interface{}{
+		`a`: 123,
+		`c`: []interface{}{
+			35,
+			27,
+			11,
+		},
+	})
+	test.Equal(t, nil, err)
+	test.Equal(t, "a = ? and c in (?,?,?)", sql)
+	test.Equal(t, 4, len(params))
+
+	params1, sql1, err1 := builder.buildWhereFromMap(map[string]interface{}{
+		`a`: 123,
+		`c`: []interface{}{},
+	})
+	test.Equal(t, nil, err1)
+	test.Equal(t, "a = ?", sql1)
+	test.Equal(t, 1, len(params1))
+}
+
 func TestMysqlClass_processValues(t *testing.T) {
 	mysql := &MysqlClass{
 		tagName: `json`,

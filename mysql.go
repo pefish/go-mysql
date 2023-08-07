@@ -939,18 +939,37 @@ func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (cols []stri
 		if val == nil {
 			continue
 		}
-		cols = append(cols, key)
 
-		str := go_reflect.Reflect.ToString(val)
-		if strings.HasPrefix(str, `s:`) {
-			r := strings.Trim(str[2:], " ")
-			index := strings.Index(r, " ")
-			ops = append(ops, r[:index])
-			vals = append(vals, r[index+1:])
+		kind := reflect.TypeOf(val).Kind()
+		if kind == reflect.Slice {
+			value_ := reflect.ValueOf(val)
+			if value_.Len() == 0 {
+				continue
+			}
+			cols = append(cols, key)
+			vals_ := make([]string, 0)
+			for i := 0; i < value_.Len(); i++ {
+				vals_ = append(vals_, "?")
+
+				str := go_reflect.Reflect.ToString(value_.Index(i).Interface())
+				args = append(args, str)
+			}
+
+			ops = append(ops, "in")
+			vals = append(vals, fmt.Sprintf("(%s)", strings.Join(vals_, ",")))
 		} else {
-			ops = append(ops, "=")
-			vals = append(vals, "?")
-			args = append(args, str)
+			cols = append(cols, key)
+			str := go_reflect.Reflect.ToString(val)
+			if strings.HasPrefix(str, `s:`) {
+				r := strings.Trim(str[2:], " ")
+				index := strings.Index(r, " ")
+				ops = append(ops, r[:index])
+				vals = append(vals, r[index+1:])
+			} else {
+				ops = append(ops, "=")
+				vals = append(vals, "?")
+				args = append(args, str)
+			}
 		}
 	}
 	return
