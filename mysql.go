@@ -945,17 +945,24 @@ func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (cols []stri
 			if value_.Len() == 0 {
 				continue
 			}
-			cols = append(cols, key)
+			args_ := make([]interface{}, 0)
 			vals_ := make([]string, 0)
 			for i := 0; i < value_.Len(); i++ {
-				vals_ = append(vals_, "?")
-
 				str := go_reflect.Reflect.ToString(value_.Index(i).Interface())
-				args = append(args, str)
+				if str == "" {
+					continue
+				}
+				vals_ = append(vals_, "?")
+				args_ = append(args_, str)
+			}
+			if len(vals_) == 0 {
+				continue
 			}
 
+			cols = append(cols, key)
 			ops = append(ops, "in")
 			vals = append(vals, fmt.Sprintf("(%s)", strings.Join(vals_, ",")))
+			args = append(args, args_...)
 		} else {
 			cols = append(cols, key)
 			str := go_reflect.Reflect.ToString(val)

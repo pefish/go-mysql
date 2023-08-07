@@ -249,7 +249,7 @@ func Test_builderClass_BuildSelectSql1(t *testing.T) {
 		`table`,
 		`*`,
 		map[string]interface{}{
-			"symbol": []string{},
+			"symbol": strings.Split("", ","),
 		},
 	)
 	test.Equal(t, nil, err)
