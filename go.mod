@@ -5,7 +5,7 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/pefish/go-logger v0.4.16
 	github.com/pefish/go-reflect v0.2.2
-	github.com/pefish/go-test-assert v0.0.1
+	github.com/pefish/go-test-assert v0.0.2
 	github.com/pkg/errors v0.8.1
 	github.com/satori/go.uuid v1.2.0
 )

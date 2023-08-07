@@ -166,7 +166,10 @@ func Test_builderClass_buildWhereFromMapInterface1(t *testing.T) {
 		},
 	})
 	test.Equal(t, nil, err)
-	test.Equal(t, "a = ? and c in (?,?,?)", sql)
+	test.In(t, []interface{}{
+		"a = ? and c in (?,?,?)",
+		"c in (?,?,?) and a = ?",
+	}, sql)
 	test.Equal(t, 4, len(params))
 
 	params1, sql1, err1 := builder.buildWhereFromMap(map[string]interface{}{
@@ -176,6 +179,13 @@ func Test_builderClass_buildWhereFromMapInterface1(t *testing.T) {
 	test.Equal(t, nil, err1)
 	test.Equal(t, "a = ?", sql1)
 	test.Equal(t, 1, len(params1))
+
+	params2, sql2, err2 := builder.buildWhereFromMap(map[string]interface{}{
+		`c`: []string{},
+	})
+	test.Equal(t, nil, err2)
+	test.Equal(t, "", sql2)
+	test.Equal(t, 0, len(params2))
 }
 
 func TestMysqlClass_processValues(t *testing.T) {
@@ -194,12 +204,26 @@ func TestMysqlClass_processValues(t *testing.T) {
 
 func Test_builderClass_BuildSelectSql(t *testing.T) {
 	builder := builderClass{}
-	sql, params := builder.MustBuildSelectSql(`table`, `*`, map[string]interface{}{
-		"id": "s: in (1,2)",
-	})
+	sql, params := builder.MustBuildSelectSql(
+		`table`,
+		`*`,
+		map[string]interface{}{
+			"id": "s: in (1,2)",
+		},
+	)
+	test.Equal(t, "select * from table where id in (1,2)", sql)
+	test.Equal(t, 0, len(params))
+
+	sql1, params1 := builder.MustBuildSelectSql(
+		`table`,
+		`*`,
+		map[string]interface{}{
+			"id": []string{},
+		},
+	)
 	//test.Equal(t, true, strings.HasPrefix(sql, "insert into table "))
 	//test.Equal(t, 3, len(params))
-	fmt.Println(sql, params)
+	fmt.Println(sql1, params1)
 }
 
 func TestMysqlClass_correctSelectStar(t *testing.T) {
@@ -218,3 +242,14 @@ func TestMysqlClass_correctSelectStar(t *testing.T) {
 `)
 	test.Equal(t, "select a,abc from abc\n", sql)
 }
+
+//func Test_builderClass_BuildSelectSql1(t *testing.T) {
+//	builder := &builderClass{}
+//	sql, params, err := builder.BuildSelectSql("select * from test where a in (?) and b = ?", []interface{}{
+//		[]string{"123", "456"},
+//		6345,
+//	})
+//	test.Equal(t, nil, err)
+//	test.Equal(t, "select * from test where a in (?, ?) and b = ?", sql)
+//	test.Equal(t, 3, len(params))
+//}

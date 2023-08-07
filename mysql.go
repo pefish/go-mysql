@@ -987,7 +987,6 @@ func (mysql *builderClass) BuildWhere(where interface{}, args []interface{}) ([]
 	type_ := reflect.TypeOf(where)
 	kind := type_.Kind()
 	paramArgs := args
-	whereStr := `where `
 	str := ``
 	if kind == reflect.Map {
 		valKind := type_.Elem().Kind()
@@ -1017,25 +1016,29 @@ func (mysql *builderClass) BuildWhere(where interface{}, args []interface{}) ([]
 		if mapKind == reflect.Interface {
 			sliceVal := where.([]map[string]interface{})
 			for _, ele := range sliceVal {
-				paramArgsTemp, str, err := mysql.buildWhereFromMap(ele)
+				paramArgsTemp, str_, err := mysql.buildWhereFromMap(ele)
 				if err != nil {
 					return nil, ``, err
 				}
 				paramArgs = append(paramArgs, paramArgsTemp...)
-				whereStr += `(` + str + `) or `
+				str += `(` + str_ + `) or `
 			}
 		} else {
 			return nil, ``, errors.New(`map value type error`)
 		}
-		if len(whereStr) > 3 {
-			whereStr = whereStr[:len(whereStr)-4]
+		if len(str) > 3 {
+			str = str[:len(str)-4]
 		}
 	} else if kind == reflect.String {
 		return paramArgs, where.(string), nil
 	} else {
 		return nil, ``, errors.New(`where type error`)
 	}
-	return paramArgs, whereStr + str, nil
+
+	if str != "" {
+		return paramArgs, "where " + str, nil
+	}
+	return paramArgs, "", nil
 }
 
 func (mysql *builderClass) MustBuildSelectSql(tableName string, select_ string, args ...interface{}) (string, []interface{}) {
