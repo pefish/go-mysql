@@ -255,4 +255,15 @@ func Test_builderClass_BuildSelectSql1(t *testing.T) {
 	test.Equal(t, nil, err)
 	test.Equal(t, "select * from table ", sql)
 	test.Equal(t, 0, len(params))
+
+	sql1, params1, err1 := builder.BuildSelectSql(
+		`table`,
+		`*`,
+		map[string]interface{}{
+			"symbol": strings.Split("test", ","),
+		},
+	)
+	test.Equal(t, nil, err1)
+	test.Equal(t, "select * from table where symbol in (?)", sql1)
+	test.Equal(t, 1, len(params1))
 }
