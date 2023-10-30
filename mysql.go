@@ -90,10 +90,7 @@ var (
 	DEFAULT_CONN_MAX_LIFTTIME        = 6 * time.Second
 )
 
-var MysqlInstance IMysql = &MysqlClass{
-	tagName: `json`,
-	logger:  go_logger.DefaultLogger,
-}
+var MysqlInstance IMysql = NewMysqlInstance()
 
 // ----------------------------- MysqlClass -----------------------------
 
@@ -103,6 +100,13 @@ type MysqlClass struct {
 	Tx      *sqlx.Tx
 	tagName string
 	logger  go_logger.InterfaceLogger
+}
+
+func NewMysqlInstance() *MysqlClass {
+	return &MysqlClass{
+		tagName: `json`,
+		logger:  go_logger.DefaultLogger,
+	}
 }
 
 func (mc *MysqlClass) TagName() string {
