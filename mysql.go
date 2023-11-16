@@ -244,7 +244,7 @@ func (mc *MysqlClass) Connect(host string, port uint64, username string, passwor
 	address := fmt.Sprintf(`%s:%d`, host, port)
 	mc.logger.Info(fmt.Sprintf(`mysql connecting... url: %s`, address))
 	connUrl := fmt.Sprintf(
-		`%s:%s@tcp(%s)/%s?charset=utf8&parseTime=true&multiStatements=true&loc=UTC`,
+		`%s:%s@tcp(%s)/%s?sslaccept=strict&charset=utf8&parseTime=true&multiStatements=true&loc=UTC`,
 		username,
 		password,
 		address,
