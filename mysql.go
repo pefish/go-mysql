@@ -26,7 +26,7 @@ type IMysql interface {
 	ConnectWithConfiguration(configuration Configuration) error
 	MustConnectWithMap(map_ map[string]interface{})
 	ConnectWithMap(map_ map[string]interface{}) error
-	Connect(host string, port uint64, username string, password string, database *string, maxOpenConns uint64, maxIdleConns uint64, connMaxLifetime time.Duration) error
+	Connect(host string, port uint64, username string, password string, database *string, maxOpenConns uint64, maxIdleConns uint64, connMaxLifetime time.Duration, connParams map[string]string) error
 
 	MustRawSelectByStr(dest interface{}, select_ string, str string, values ...interface{})
 	MustRawExec(sql string, values ...interface{}) (uint64, uint64)
@@ -81,6 +81,7 @@ type Configuration struct {
 	MaxOpenConns    interface{}
 	MaxIdleConns    interface{}
 	ConnMaxLifetime interface{}
+	ConnParams      map[string]string
 }
 
 var (
@@ -176,7 +177,17 @@ func (mc *MysqlClass) ConnectWithConfiguration(configuration Configuration) erro
 		connMaxLifetime = configuration.ConnMaxLifetime.(time.Duration)
 	}
 
-	err := mc.Connect(configuration.Host, port, configuration.Username, configuration.Password, database, maxOpenConns, maxIdleConns, connMaxLifetime)
+	err := mc.Connect(
+		configuration.Host,
+		port,
+		configuration.Username,
+		configuration.Password,
+		database,
+		maxOpenConns,
+		maxIdleConns,
+		connMaxLifetime,
+		configuration.ConnParams,
+	)
 	if err != nil {
 		return err
 	}
@@ -229,26 +240,54 @@ func (mc *MysqlClass) ConnectWithMap(map_ map[string]interface{}) error {
 		connMaxLifetime = time.Duration(connMaxLifeTime_) * time.Second
 	}
 
-	err := mc.Connect(map_[`host`].(string), port, map_[`username`].(string), map_[`password`].(string), database, maxOpenConns, maxIdleConns, connMaxLifetime)
+	err := mc.Connect(
+		map_[`host`].(string),
+		port,
+		map_[`username`].(string),
+		map_[`password`].(string),
+		database,
+		maxOpenConns,
+		maxIdleConns,
+		connMaxLifetime,
+		map_["connParams"].(map[string]string),
+	)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (mc *MysqlClass) Connect(host string, port uint64, username string, password string, database *string, maxOpenConns uint64, maxIdleConns uint64, connMaxLifetime time.Duration) error {
+func (mc *MysqlClass) Connect(
+	host string,
+	port uint64,
+	username string,
+	password string,
+	database *string,
+	maxOpenConns uint64,
+	maxIdleConns uint64,
+	connMaxLifetime time.Duration,
+	connParams map[string]string,
+) error {
 	d := ``
 	if database != nil {
 		d = *database
 	}
 	address := fmt.Sprintf(`%s:%d`, host, port)
 	mc.logger.Info(fmt.Sprintf(`mysql connecting... url: %s`, address))
+
+	connParamsStr := "charset=utf8&parseTime=true&multiStatements=true&loc=UTC"
+	if connParams != nil {
+		for k, v := range connParams {
+			connParamsStr += fmt.Sprintf("&%s=%s", k, v)
+		}
+	}
 	connUrl := fmt.Sprintf(
-		`%s:%s@tcp(%s)/%s?sslaccept=strict&charset=utf8&parseTime=true&multiStatements=true&loc=UTC`,
+		`%s:%s@tcp(%s)/%s?%s`,
 		username,
 		password,
 		address,
 		d,
+		connParamsStr,
 	)
 	db, err := sqlx.Connect(`mysql`, connUrl)
 	if err != nil {
