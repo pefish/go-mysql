@@ -71,13 +71,13 @@ type IMysql interface {
 
 type Configuration struct {
 	Host            string
-	Port            *int
+	Port            int
 	Username        string
 	Password        string
-	Database        *string
-	MaxOpenConns    *int
-	MaxIdleConns    *int
-	ConnMaxLifetime *time.Duration
+	Database        string
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime time.Duration
 	ConnParams      map[string]string
 }
 
@@ -141,24 +141,24 @@ func (mc *MysqlClass) MustConnectWithConfiguration(configuration Configuration) 
 
 func (mc *MysqlClass) ConnectWithConfiguration(configuration Configuration) error {
 	var port = DEFAULT_PORT
-	if configuration.Port != nil {
-		port = *configuration.Port
+	if configuration.Port != 0 {
+		port = configuration.Port
 	}
 	var database string
-	if configuration.Database != nil {
-		database = *configuration.Database
+	if configuration.Database != "" {
+		database = configuration.Database
 	}
 	var maxOpenConns = DEFAULT_MAX_OPEN_CONNS
-	if configuration.MaxOpenConns != nil {
-		maxOpenConns = *configuration.MaxOpenConns
+	if configuration.MaxOpenConns != 0 {
+		maxOpenConns = configuration.MaxOpenConns
 	}
 	var maxIdleConns = DEFAULT_MAX_IDLE_CONNS
-	if configuration.MaxIdleConns != nil {
-		maxIdleConns = *configuration.MaxIdleConns
+	if configuration.MaxIdleConns != 0 {
+		maxIdleConns = configuration.MaxIdleConns
 	}
 	connMaxLifetime := DEFAULT_CONN_MAX_LIFTTIME
-	if configuration.ConnMaxLifetime != nil {
-		connMaxLifetime = *configuration.ConnMaxLifetime
+	if configuration.ConnMaxLifetime != 0 {
+		connMaxLifetime = configuration.ConnMaxLifetime
 	}
 
 	address := fmt.Sprintf(`%s:%d`, configuration.Host, port)
