@@ -6,7 +6,7 @@ require (
 	github.com/pefish/go-format v0.2.5
 	github.com/pefish/go-logger v0.5.3
 	github.com/pefish/go-test v0.0.4
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 )
 

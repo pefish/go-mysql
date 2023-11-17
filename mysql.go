@@ -2,7 +2,6 @@ package go_mysql
 
 import (
 	sql2 "database/sql"
-	"encoding/json"
 	"fmt"
 	go_format "github.com/pefish/go-format"
 	"github.com/pkg/errors"
@@ -757,7 +756,6 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 		}
 		q := squirrel.Insert(tableName).Columns(cols...)
 		for i := 0; i < value_.Len(); i++ {
-
 			map_, err := mysql.structToMap(value_.Index(i).Interface())
 			if err != nil {
 				return ``, nil, err
@@ -930,10 +928,10 @@ func (mysql *builderClass) MustBuildWhere(where interface{}, args []interface{})
 
 func (mysql *builderClass) BuildWhere(where interface{}, args []interface{}) ([]interface{}, string, error) {
 	type_ := reflect.TypeOf(where)
-	kind := type_.Kind()
 	paramArgs := args
 	str := ``
-	if kind == reflect.Map {
+	switch type_.Kind() {
+	case reflect.Map:
 		valKind := type_.Elem().Kind()
 		if valKind == reflect.Interface {
 			var err error
@@ -944,7 +942,7 @@ func (mysql *builderClass) BuildWhere(where interface{}, args []interface{}) ([]
 		} else {
 			return nil, ``, errors.New(`map value type error`)
 		}
-	} else if kind == reflect.Struct {
+	case reflect.Struct:
 		map_, err := mysql.structToMap(where)
 		if err != nil {
 			return nil, ``, err
@@ -953,7 +951,7 @@ func (mysql *builderClass) BuildWhere(where interface{}, args []interface{}) ([]
 		if err != nil {
 			return nil, ``, err
 		}
-	} else if kind == reflect.Slice { // or
+	case reflect.Slice:
 		if type_.Elem().Kind() != reflect.Map {
 			return nil, ``, errors.New(`slice value type error`)
 		}
@@ -974,10 +972,10 @@ func (mysql *builderClass) BuildWhere(where interface{}, args []interface{}) ([]
 		if len(str) > 3 {
 			str = str[:len(str)-4]
 		}
-	} else if kind == reflect.String {
+	case reflect.String:
 		return paramArgs, where.(string), nil
-	} else {
-		return nil, ``, errors.New(`where type error`)
+	default:
+		return nil, ``, errors.New(`Where type error.`)
 	}
 
 	if str != "" {
@@ -996,7 +994,7 @@ func (mysql *builderClass) MustBuildSelectSql(tableName string, select_ string, 
 
 func (mysql *builderClass) BuildSelectSql(tableName string, select_ string, args ...interface{}) (string, []interface{}, error) {
 	var whereStr = ``
-	var paramArgs = []interface{}{}
+	paramArgs := make([]interface{}, 0)
 	if len(args) > 0 && args[0] != nil {
 		var err error
 		paramArgs, whereStr, err = mysql.BuildWhere(args[0], args[1:])
@@ -1015,14 +1013,23 @@ func (mysql *builderClass) BuildSelectSql(tableName string, select_ string, args
 }
 
 func (mysql *builderClass) structToMap(in_ interface{}) (map[string]interface{}, error) {
-	var result map[string]interface{}
-	inrec, err := json.Marshal(in_)
-	if err != nil {
-		return nil, err
+	result := make(map[string]interface{}, 0)
+	objVal := reflect.ValueOf(in_)
+	if objVal.Kind() != reflect.Struct {
+		return nil, errors.New("Must be struct type.")
 	}
-	err = json.Unmarshal(inrec, &result)
-	if err != nil {
-		return nil, err
+	objType := objVal.Type()
+	for i := 0; i < objVal.NumField(); i++ {
+		field := objVal.Field(i)
+		fieldType := objType.Field(i)
+		tag := fieldType.Tag.Get("json")
+
+		if tag != "" {
+			key := strings.Split(tag, ",")[0]
+			result[key] = field.Interface()
+		} else {
+			result[fieldType.Name] = field.Interface()
+		}
 	}
 	return result, nil
 }
@@ -1037,10 +1044,10 @@ func (mysql *builderClass) MustBuildUpdateSql(tableName string, update interface
 
 func (mysql *builderClass) BuildUpdateSql(tableName string, update interface{}, args ...interface{}) (string, []interface{}, error) {
 	var updateStr = ``
-	var paramArgs = []interface{}{}
+	paramArgs := make([]interface{}, 0)
 	type_ := reflect.TypeOf(update)
-	updateKind := type_.Kind()
-	if updateKind == reflect.Map {
+	switch type_.Kind() {
+	case reflect.Map:
 		valKind := type_.Elem().Kind()
 		if valKind == reflect.Interface {
 			for key, val := range update.(map[string]interface{}) {
@@ -1053,7 +1060,7 @@ func (mysql *builderClass) BuildUpdateSql(tableName string, update interface{}, 
 		} else {
 			return ``, nil, errors.New(`map value type error`)
 		}
-	} else if updateKind == reflect.Struct {
+	case reflect.Struct:
 		map_, err := mysql.structToMap(update)
 		if err != nil {
 			return ``, nil, err
@@ -1065,9 +1072,11 @@ func (mysql *builderClass) BuildUpdateSql(tableName string, update interface{}, 
 			updateStr = updateStr + key + ` = ?,`
 			paramArgs = append(paramArgs, go_format.FormatInstance.ToString(val))
 		}
-	} else {
-		return ``, nil, errors.New(`type error`)
+	default:
+		return ``, nil, errors.New(`Type error.`)
+
 	}
+
 	if len(updateStr) > 0 {
 		updateStr = updateStr[:len(updateStr)-1]
 	}

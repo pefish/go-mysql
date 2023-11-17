@@ -267,3 +267,14 @@ func Test_builderClass_BuildSelectSql1(t *testing.T) {
 	go_test_.Equal(t, "select * from table where symbol in (?)", sql1)
 	go_test_.Equal(t, 1, len(params1))
 }
+
+func Test_builderClass_structToMap(t *testing.T) {
+	type Test struct {
+		A string `json:"a,b"`
+	}
+
+	mysql := &builderClass{}
+	got, err := mysql.structToMap(Test{A: "aaaaa"})
+	go_test_.Equal(t, nil, err)
+	go_test_.Equal(t, "aaaaa", got["a"])
+}
