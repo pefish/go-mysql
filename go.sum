@@ -29,6 +29,8 @@ github.com/pefish/go-logger v0.5.3/go.mod h1:IN1qdbxaVfsT518o9lsj8YY0bCi6E8kakui
 github.com/pefish/go-test v0.0.4 h1:s1RmZWe91K1MtENJUcl7CjGUFK/TmleZ5h3OkHq/BTI=
 github.com/pefish/go-test v0.0.4/go.mod h1:z9DAQQyjfKx0dRTBSaJCOSMwyMjwNEHI+/CBwNaCwk0=
 github.com/pefish/go-test-assert v0.0.2 h1:AuEJxG99DsFb9+qSUnSEWJDlTn0gf1PmGkKcOUAFAjw=
+github.com/pefish/go-time v0.2.2 h1:m8UU0V9CqKkaoAmmeou+LQGQqT3UN4LufBPl6D4IJRE=
+github.com/pefish/go-time v0.2.2/go.mod h1:5BGWpLZXOu3zNQslWrMFwTJHlPaMr+cjc4fxOu6c27M=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=

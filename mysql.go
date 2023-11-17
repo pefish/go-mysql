@@ -4,6 +4,7 @@ import (
 	sql2 "database/sql"
 	"fmt"
 	go_format "github.com/pefish/go-format"
+	go_time "github.com/pefish/go-time"
 	"github.com/pkg/errors"
 	"reflect"
 	"strings"
@@ -1028,7 +1029,7 @@ func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interf
 
 		strValue := ""
 		if fieldType.Type.String() == "time.Time" {
-			strValue = go_format.FormatInstance.ToString(field.Interface())
+			strValue = go_time.TimeInstance.TimeToStr(field.Interface().(time.Time), "0000-00-00 00:00:00")
 		} else if field.Kind() == reflect.Struct {
 			err := mysql.structToMap(field.Interface(), result)
 			if err != nil {
