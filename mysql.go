@@ -1023,12 +1023,13 @@ func (mysql *builderClass) structToMap(in_ interface{}) (map[string]interface{},
 		field := objVal.Field(i)
 		fieldType := objType.Field(i)
 		tag := fieldType.Tag.Get("json")
-
+		// 所有类型都转换为 String 类型
+		strValue := go_format.FormatInstance.ToString(field.Interface())
 		if tag != "" {
 			key := strings.Split(tag, ",")[0]
-			result[key] = field.Interface()
+			result[key] = strValue
 		} else {
-			result[fieldType.Name] = field.Interface()
+			result[fieldType.Name] = strValue
 		}
 	}
 	return result, nil
