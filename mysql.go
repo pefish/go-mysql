@@ -1026,18 +1026,20 @@ func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interf
 		field := objVal.Field(i)
 		fieldType := objType.Field(i)
 
-		// 检查是否为内嵌结构体
-		if field.Kind() == reflect.Struct {
+		strValue := ""
+		if fieldType.Type.String() == "time.Time" {
+			strValue = go_format.FormatInstance.ToString(field.Interface())
+		} else if field.Kind() == reflect.Struct {
 			err := mysql.structToMap(field.Interface(), result)
 			if err != nil {
 				return err
 			}
 			continue
+		} else {
+			// 所有类型都转换为 String 类型
+			strValue = go_format.FormatInstance.ToString(field.Interface())
 		}
-
 		tag := fieldType.Tag.Get("json")
-		// 所有类型都转换为 String 类型
-		strValue := go_format.FormatInstance.ToString(field.Interface())
 		if tag != "" {
 			key := strings.Split(tag, ",")[0]
 			result[key] = strValue
