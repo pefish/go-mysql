@@ -293,10 +293,11 @@ func (mc *MysqlClass) correctSelectStar(dest interface{}, sql string) string {
 
 func (mc *MysqlClass) replaceIfStar(dest interface{}, str string) string {
 	if str == "*" {
-		if reflect.TypeOf(dest).Kind() == reflect.Map {
+		tags := go_format.FormatInstance.GetValuesInTagFromStruct(dest, mc.tagName)
+		if len(tags) == 0 {
 			return str
 		}
-		return strings.Join(go_format.FormatInstance.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
+		return strings.Join(tags, `,`)
 	}
 
 	return str
