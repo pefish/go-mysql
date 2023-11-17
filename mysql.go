@@ -4,6 +4,7 @@ import (
 	sql2 "database/sql"
 	"encoding/json"
 	"fmt"
+	go_format "github.com/pefish/go-format"
 	"github.com/pkg/errors"
 	"reflect"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pefish/go-logger"
 	"github.com/pefish/go-mysql/sqlx"
-	go_reflect "github.com/pefish/go-reflect"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -24,9 +24,6 @@ type IMysql interface {
 
 	MustConnectWithConfiguration(configuration Configuration)
 	ConnectWithConfiguration(configuration Configuration) error
-	MustConnectWithMap(map_ map[string]interface{})
-	ConnectWithMap(map_ map[string]interface{}) error
-	Connect(host string, port uint64, username string, password string, database *string, maxOpenConns uint64, maxIdleConns uint64, connMaxLifetime time.Duration, connParams map[string]string) error
 
 	MustRawSelectByStr(dest interface{}, select_ string, str string, values ...interface{})
 	MustRawExec(sql string, values ...interface{}) (uint64, uint64)
@@ -74,21 +71,21 @@ type IMysql interface {
 
 type Configuration struct {
 	Host            string
-	Port            interface{}
+	Port            *int
 	Username        string
 	Password        string
-	Database        interface{}
-	MaxOpenConns    interface{}
-	MaxIdleConns    interface{}
-	ConnMaxLifetime interface{}
+	Database        *string
+	MaxOpenConns    *int
+	MaxIdleConns    *int
+	ConnMaxLifetime *time.Duration
 	ConnParams      map[string]string
 }
 
 var (
-	DEFAULT_PORT              uint64 = 3306
-	DEFAULT_MAX_OPEN_CONNS    uint64 = 100
-	DEFAULT_MAX_IDLE_CONNS    uint64 = 30
-	DEFAULT_CONN_MAX_LIFTTIME        = 6 * time.Second
+	DEFAULT_PORT              int = 3306
+	DEFAULT_MAX_OPEN_CONNS    int = 100
+	DEFAULT_MAX_IDLE_CONNS    int = 30
+	DEFAULT_CONN_MAX_LIFTTIME     = 6 * time.Second
 )
 
 var MysqlInstance IMysql = NewMysqlInstance()
@@ -145,148 +142,40 @@ func (mc *MysqlClass) MustConnectWithConfiguration(configuration Configuration) 
 func (mc *MysqlClass) ConnectWithConfiguration(configuration Configuration) error {
 	var port = DEFAULT_PORT
 	if configuration.Port != nil {
-		port_, err := go_reflect.Reflect.ToUint64(configuration.Port)
-		if err != nil {
-			return err
-		}
-		port = port_
+		port = *configuration.Port
 	}
-	var database *string
+	var database string
 	if configuration.Database != nil {
-		d := go_reflect.Reflect.ToString(configuration.Database)
-		database = &d
+		database = *configuration.Database
 	}
 	var maxOpenConns = DEFAULT_MAX_OPEN_CONNS
 	if configuration.MaxOpenConns != nil {
-		maxOpenConns_, err := go_reflect.Reflect.ToUint64(configuration.MaxOpenConns)
-		if err != nil {
-			return err
-		}
-		maxOpenConns = maxOpenConns_
+		maxOpenConns = *configuration.MaxOpenConns
 	}
 	var maxIdleConns = DEFAULT_MAX_IDLE_CONNS
 	if configuration.MaxIdleConns != nil {
-		maxIdleConns_, err := go_reflect.Reflect.ToUint64(configuration.MaxIdleConns)
-		if err != nil {
-			return err
-		}
-		maxIdleConns = maxIdleConns_
+		maxIdleConns = *configuration.MaxIdleConns
 	}
 	connMaxLifetime := DEFAULT_CONN_MAX_LIFTTIME
 	if configuration.ConnMaxLifetime != nil {
-		connMaxLifetime = configuration.ConnMaxLifetime.(time.Duration)
+		connMaxLifetime = *configuration.ConnMaxLifetime
 	}
 
-	err := mc.Connect(
-		configuration.Host,
-		port,
-		configuration.Username,
-		configuration.Password,
-		database,
-		maxOpenConns,
-		maxIdleConns,
-		connMaxLifetime,
-		configuration.ConnParams,
-	)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (mc *MysqlClass) MustConnectWithMap(map_ map[string]interface{}) {
-	err := mc.ConnectWithMap(map_)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (mc *MysqlClass) ConnectWithMap(map_ map[string]interface{}) error {
-	var port = DEFAULT_PORT
-	if map_[`port`] != nil {
-		port_, err := go_reflect.Reflect.ToUint64(map_[`port`])
-		if err != nil {
-			return err
-		}
-		port = port_
-	}
-	var database *string
-	if map_[`database`] != nil {
-		d := go_reflect.Reflect.ToString(map_[`database`])
-		database = &d
-	}
-	var maxOpenConns = DEFAULT_MAX_OPEN_CONNS
-	if map_[`maxOpenConns`] != nil {
-		maxOpenConns_, err := go_reflect.Reflect.ToUint64(map_[`maxOpenConns`])
-		if err != nil {
-			return err
-		}
-		maxOpenConns = maxOpenConns_
-	}
-	var maxIdleConns = DEFAULT_MAX_IDLE_CONNS
-	if map_[`maxIdleConns`] != nil {
-		maxIdleConns_, err := go_reflect.Reflect.ToUint64(map_[`maxIdleConns`])
-		if err != nil {
-			return err
-		}
-		maxIdleConns = maxIdleConns_
-	}
-	connMaxLifetime := DEFAULT_CONN_MAX_LIFTTIME
-	if map_[`connMaxLifeTime`] != nil {
-		connMaxLifeTime_, err := go_reflect.Reflect.ToInt64(map_[`connMaxLifeTime`])
-		if err != nil {
-			return err
-		}
-		connMaxLifetime = time.Duration(connMaxLifeTime_) * time.Second
-	}
-
-	err := mc.Connect(
-		map_[`host`].(string),
-		port,
-		map_[`username`].(string),
-		map_[`password`].(string),
-		database,
-		maxOpenConns,
-		maxIdleConns,
-		connMaxLifetime,
-		map_["connParams"].(map[string]string),
-	)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (mc *MysqlClass) Connect(
-	host string,
-	port uint64,
-	username string,
-	password string,
-	database *string,
-	maxOpenConns uint64,
-	maxIdleConns uint64,
-	connMaxLifetime time.Duration,
-	connParams map[string]string,
-) error {
-	d := ``
-	if database != nil {
-		d = *database
-	}
-	address := fmt.Sprintf(`%s:%d`, host, port)
+	address := fmt.Sprintf(`%s:%d`, configuration.Host, port)
 	mc.logger.Info(fmt.Sprintf(`mysql connecting... url: %s`, address))
 
 	connParamsStr := "charset=utf8&parseTime=true&multiStatements=true&loc=UTC"
-	if connParams != nil {
-		for k, v := range connParams {
+	if configuration.ConnParams != nil {
+		for k, v := range configuration.ConnParams {
 			connParamsStr += fmt.Sprintf("&%s=%s", k, v)
 		}
 	}
 	connUrl := fmt.Sprintf(
 		`%s:%s@tcp(%s)/%s?%s`,
-		username,
-		password,
+		configuration.Username,
+		configuration.Password,
 		address,
-		d,
+		database,
 		connParamsStr,
 	)
 	db, err := sqlx.Connect(`mysql`, connUrl)
@@ -295,8 +184,8 @@ func (mc *MysqlClass) Connect(
 	}
 	db.SetTagName(mc.tagName)
 	mc.logger.Info(fmt.Sprintf(`mysql connect succeed. url: %s`, address))
-	db.DB.SetMaxOpenConns(int(maxOpenConns))  // 用于设置最大打开的连接数，默认值为0表示不限制
-	db.DB.SetMaxIdleConns(int(maxIdleConns))  // 用于设置闲置的连接数
+	db.DB.SetMaxOpenConns(maxOpenConns)       // 用于设置最大打开的连接数，默认值为0表示不限制
+	db.DB.SetMaxIdleConns(maxIdleConns)       // 用于设置闲置的连接数
 	db.DB.SetConnMaxLifetime(connMaxLifetime) // 设置一个超时时间，时间小于数据库的超时时间即可
 	mc.Db = db
 
@@ -319,9 +208,7 @@ func (mc *MysqlClass) MustRawSelectByStr(dest interface{}, select_ string, str s
 }
 
 func (mc *MysqlClass) RawSelectByStr(dest interface{}, select_ string, str string, values ...interface{}) error {
-	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
-	}
+	select_ = mc.replaceIfStar(dest, select_)
 	sql := fmt.Sprintf(
 		`select %s %s`,
 		select_,
@@ -398,10 +285,21 @@ func (mc *MysqlClass) MustRawSelect(dest interface{}, sql string, values ...inte
 func (mc *MysqlClass) correctSelectStar(dest interface{}, sql string) string {
 	sql = strings.TrimLeft(sql, " \n\t")
 	if strings.HasPrefix(sql, `select *`) {
-		return `select ` + strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`) + sql[8:]
+		return `select ` + mc.replaceIfStar(dest, "*") + sql[8:]
 	}
 
 	return sql
+}
+
+func (mc *MysqlClass) replaceIfStar(dest interface{}, str string) string {
+	if str == "*" {
+		if reflect.TypeOf(dest).Kind() == reflect.Map {
+			return str
+		}
+		return strings.Join(go_format.FormatInstance.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
+	}
+
+	return str
 }
 
 func (mc *MysqlClass) RawSelect(dest interface{}, sql string, values ...interface{}) error {
@@ -500,9 +398,7 @@ func (mc *MysqlClass) MustSelectFirst(dest interface{}, tableName string, select
 }
 
 func (mc *MysqlClass) SelectFirst(dest interface{}, tableName string, select_ string, args ...interface{}) (bool, error) {
-	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
-	}
+	select_ = mc.replaceIfStar(dest, select_)
 	sql, paramArgs, err := builder.BuildSelectSql(tableName, select_, args...)
 	if err != nil {
 		return true, err
@@ -534,9 +430,7 @@ func (mc *MysqlClass) MustSelectFirstByStr(dest interface{}, tableName string, s
 }
 
 func (mc *MysqlClass) SelectFirstByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) (bool, error) {
-	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
-	}
+	select_ = mc.replaceIfStar(dest, select_)
 	sql := fmt.Sprintf(
 		`select %s from %s %s`,
 		select_,
@@ -555,13 +449,18 @@ func (mc *MysqlClass) MustSelectById(dest interface{}, tableName string, select_
 }
 
 func (mc *MysqlClass) SelectById(dest interface{}, tableName string, select_ string, id uint64, forUpdate bool) (notFound bool, err error) {
-	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
-	}
-	var paramArgs = []interface{}{}
-	sql, paramArgs, err := builder.BuildSelectSql(tableName, select_, map[string]interface{}{
-		`id`: id,
-	}, nil, nil, forUpdate)
+	select_ = mc.replaceIfStar(dest, select_)
+	paramArgs := make([]interface{}, 0)
+	sql, paramArgs, err := builder.BuildSelectSql(
+		tableName,
+		select_,
+		map[string]interface{}{
+			`id`: id,
+		},
+		nil,
+		nil,
+		forUpdate,
+	)
 	if err != nil {
 		return true, err
 	}
@@ -576,9 +475,7 @@ func (mc *MysqlClass) MustSelect(dest interface{}, tableName string, select_ str
 }
 
 func (mc *MysqlClass) Select(dest interface{}, tableName string, select_ string, args ...interface{}) error {
-	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
-	}
+	select_ = mc.replaceIfStar(dest, select_)
 	sql, paramArgs, err := builder.BuildSelectSql(tableName, select_, args...)
 	if err != nil {
 		return err
@@ -598,9 +495,7 @@ func (mc *MysqlClass) MustSelectByStr(dest interface{}, tableName string, select
 }
 
 func (mc *MysqlClass) SelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) error {
-	if select_ == `*` {
-		select_ = strings.Join(go_reflect.Reflect.GetValuesInTagFromStruct(dest, mc.tagName), `,`)
-	}
+	select_ = mc.replaceIfStar(dest, select_)
 	sql := fmt.Sprintf(
 		`select %s from %s %s`,
 		select_,
@@ -897,7 +792,7 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 				continue
 			}
 			str += key + ` = ?,`
-			paramArgs = append(paramArgs, go_reflect.Reflect.ToString(val))
+			paramArgs = append(paramArgs, go_format.FormatInstance.ToString(val))
 		}
 		str = strings.TrimSuffix(str, ",")
 	}
@@ -991,7 +886,7 @@ func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (cols []stri
 			args_ := make([]interface{}, 0)
 			vals_ := make([]string, 0)
 			for i := 0; i < value_.Len(); i++ {
-				str := go_reflect.Reflect.ToString(value_.Index(i).Interface())
+				str := go_format.FormatInstance.ToString(value_.Index(i).Interface())
 				if str == "" {
 					continue
 				}
@@ -1008,7 +903,7 @@ func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (cols []stri
 			args = append(args, args_...)
 		} else {
 			cols = append(cols, key)
-			str := go_reflect.Reflect.ToString(val)
+			str := go_format.FormatInstance.ToString(val)
 			if strings.HasPrefix(str, `s:`) {
 				r := strings.Trim(str[2:], " ")
 				index := strings.Index(r, " ")
@@ -1152,7 +1047,7 @@ func (mysql *builderClass) BuildUpdateSql(tableName string, update interface{}, 
 					continue
 				}
 				updateStr = updateStr + key + ` = ?,`
-				paramArgs = append(paramArgs, go_reflect.Reflect.ToString(val))
+				paramArgs = append(paramArgs, go_format.FormatInstance.ToString(val))
 			}
 		} else {
 			return ``, nil, errors.New(`map value type error`)
@@ -1167,7 +1062,7 @@ func (mysql *builderClass) BuildUpdateSql(tableName string, update interface{}, 
 				continue
 			}
 			updateStr = updateStr + key + ` = ?,`
-			paramArgs = append(paramArgs, go_reflect.Reflect.ToString(val))
+			paramArgs = append(paramArgs, go_format.FormatInstance.ToString(val))
 		}
 	} else {
 		return ``, nil, errors.New(`type error`)
