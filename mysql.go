@@ -737,7 +737,8 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 			return ``, nil, errors.New(`map value type error`)
 		}
 	} else if kind == reflect.Struct {
-		map_, err := mysql.structToMap(params)
+		map_ := make(map[string]interface{}, 0)
+		err := mysql.structToMap(params, map_)
 		if err != nil {
 			return ``, nil, err
 		}
@@ -747,7 +748,8 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 		if value_.Len() == 0 {
 			return "", nil, errors.New("slice length cannot be 0")
 		}
-		map_, err := mysql.structToMap(value_.Index(0).Interface())
+		map_ := make(map[string]interface{}, 0)
+		err := mysql.structToMap(value_.Index(0).Interface(), map_)
 		if err != nil {
 			return ``, nil, err
 		}
@@ -756,7 +758,8 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 		}
 		q := squirrel.Insert(tableName).Columns(cols...)
 		for i := 0; i < value_.Len(); i++ {
-			map_, err := mysql.structToMap(value_.Index(i).Interface())
+			map_ := make(map[string]interface{}, 0)
+			err := mysql.structToMap(value_.Index(i).Interface(), map_)
 			if err != nil {
 				return ``, nil, err
 			}
@@ -943,7 +946,8 @@ func (mysql *builderClass) BuildWhere(where interface{}, args []interface{}) ([]
 			return nil, ``, errors.New(`map value type error`)
 		}
 	case reflect.Struct:
-		map_, err := mysql.structToMap(where)
+		map_ := make(map[string]interface{}, 0)
+		err := mysql.structToMap(where, map_)
 		if err != nil {
 			return nil, ``, err
 		}
@@ -1012,16 +1016,25 @@ func (mysql *builderClass) BuildSelectSql(tableName string, select_ string, args
 	return str, paramArgs, nil
 }
 
-func (mysql *builderClass) structToMap(in_ interface{}) (map[string]interface{}, error) {
-	result := make(map[string]interface{}, 0)
+func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interface{}) error {
 	objVal := reflect.ValueOf(in_)
 	if objVal.Kind() != reflect.Struct {
-		return nil, errors.New("Must be struct type.")
+		return errors.New("Must be struct type.")
 	}
 	objType := objVal.Type()
 	for i := 0; i < objVal.NumField(); i++ {
 		field := objVal.Field(i)
 		fieldType := objType.Field(i)
+
+		// 检查是否为内嵌结构体
+		if field.Kind() == reflect.Struct {
+			err := mysql.structToMap(field.Interface(), result)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
 		tag := fieldType.Tag.Get("json")
 		// 所有类型都转换为 String 类型
 		strValue := go_format.FormatInstance.ToString(field.Interface())
@@ -1032,7 +1045,7 @@ func (mysql *builderClass) structToMap(in_ interface{}) (map[string]interface{},
 			result[fieldType.Name] = strValue
 		}
 	}
-	return result, nil
+	return nil
 }
 
 func (mysql *builderClass) MustBuildUpdateSql(tableName string, update interface{}, args ...interface{}) (string, []interface{}) {
@@ -1062,7 +1075,8 @@ func (mysql *builderClass) BuildUpdateSql(tableName string, update interface{}, 
 			return ``, nil, errors.New(`map value type error`)
 		}
 	case reflect.Struct:
-		map_, err := mysql.structToMap(update)
+		map_ := make(map[string]interface{}, 0)
+		err := mysql.structToMap(update, map_)
 		if err != nil {
 			return ``, nil, err
 		}

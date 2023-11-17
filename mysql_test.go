@@ -269,12 +269,21 @@ func Test_builderClass_BuildSelectSql1(t *testing.T) {
 }
 
 func Test_builderClass_structToMap(t *testing.T) {
+	type Nest struct {
+		B string `json:"b"`
+	}
 	type Test struct {
 		A string `json:"a,b"`
+		Nest
 	}
 
 	mysql := &builderClass{}
-	got, err := mysql.structToMap(Test{A: "aaaaa"})
+	result := make(map[string]interface{}, 0)
+	err := mysql.structToMap(Test{
+		A:    "aaaaa",
+		Nest: Nest{B: "bbbbb"},
+	}, result)
 	go_test_.Equal(t, nil, err)
-	go_test_.Equal(t, "aaaaa", got["a"])
+	go_test_.Equal(t, "aaaaa", result["a"])
+	go_test_.Equal(t, "bbbbb", result["b"])
 }
