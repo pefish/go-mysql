@@ -121,6 +121,7 @@ func TestBuilderClass_BuildWhere(t *testing.T) {
 		B: `765`,
 		C: nil,
 	}, nil)
+	//fmt.Println(args1, sql1)
 	go_test_.Equal(t, true, strings.HasPrefix(sql1, "where "))
 	go_test_.Equal(t, 2, len(args1))
 
@@ -128,6 +129,26 @@ func TestBuilderClass_BuildWhere(t *testing.T) {
 	go_test_.Equal(t, "where a = ? and b = ?", sql2)
 	go_test_.Equal(t, 2, len(args2))
 
+}
+
+func TestBuilderClass_BuildInsertSql2(t *testing.T) {
+	type Test2 struct {
+		C string `json:"c"`
+	}
+
+	type Test1 struct {
+		A     string `json:"a,omitempty"`
+		B     uint64 `json:"b"`
+		Test2 `json:"test2,omitempty"`
+	}
+	test1 := Test1{
+		B: 123,
+		A: "456",
+	}
+	_, params := builder.MustBuildInsertSql(`table`, test1, buildInsertSqlOpt{})
+	//fmt.Println(sql, params)
+	//go_test_.Equal(t, true, strings.HasPrefix(sql, "INSERT INTO table "))
+	go_test_.Equal(t, 2, len(params))
 }
 
 func TestBuilderClass_BuildInsertSql1(t *testing.T) {

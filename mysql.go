@@ -729,25 +729,25 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 	var vals []string
 	var paramArgs = make([]interface{}, 0)
 	type_ := reflect.TypeOf(params)
-	kind := type_.Kind()
-	if kind == reflect.Map {
+	switch type_.Kind() {
+	case reflect.Map:
 		valKind := type_.Elem().Kind()
 		if valKind == reflect.Interface {
 			cols, _, vals, paramArgs = mysql.buildFromMap(params.(map[string]interface{}))
 		} else {
-			return ``, nil, errors.New(`map value type error`)
+			return ``, nil, errors.New(`Map value type error.`)
 		}
-	} else if kind == reflect.Struct {
+	case reflect.Struct:
 		map_ := make(map[string]interface{}, 0)
 		err := mysql.structToMap(params, map_)
 		if err != nil {
 			return ``, nil, err
 		}
 		cols, _, vals, paramArgs = mysql.buildFromMap(map_)
-	} else if kind == reflect.Slice {
+	case reflect.Slice:
 		value_ := reflect.ValueOf(params)
 		if value_.Len() == 0 {
-			return "", nil, errors.New("slice length cannot be 0")
+			return "", nil, errors.New("Slice length cannot be 0.")
 		}
 		map_ := make(map[string]interface{}, 0)
 		err := mysql.structToMap(value_.Index(0).Interface(), map_)
@@ -771,8 +771,8 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 			q = q.Values(vals...)
 		}
 		return q.ToSql()
-	} else {
-		return ``, nil, errors.New(`type error`)
+	default:
+		return ``, nil, errors.New(`Type error.`)
 	}
 
 	insertStr := `insert`
@@ -1017,8 +1017,26 @@ func (mysql *builderClass) BuildSelectSql(tableName string, select_ string, args
 	return str, paramArgs, nil
 }
 
+func isZeroValue(val reflect.Value) bool {
+	switch val.Kind() {
+	case reflect.Func, reflect.Map, reflect.Slice:
+		return val.IsNil()
+	case reflect.Array, reflect.Chan, reflect.String, reflect.Interface, reflect.Ptr:
+		return val.IsZero()
+	}
+
+	// 对于结构体和基本类型，使用 IsZero 方法
+	return val.IsZero()
+}
+
 func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interface{}) error {
 	objVal := reflect.ValueOf(in_)
+	if objVal.Kind() == reflect.Map {
+		for k, v := range in_.(map[string]interface{}) {
+			result[k] = v
+		}
+		return nil
+	}
 	if objVal.Kind() != reflect.Struct {
 		return errors.New("Must be struct type.")
 	}
@@ -1026,6 +1044,19 @@ func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interf
 	for i := 0; i < objVal.NumField(); i++ {
 		field := objVal.Field(i)
 		fieldType := objType.Field(i)
+
+		key := fieldType.Name
+		jsonTag := fieldType.Tag.Get("json")
+		if jsonTag != "" {
+			jsonTags := strings.Split(jsonTag, ",")
+			if len(jsonTags) > 1 && jsonTags[1] == "omitempty" && isZeroValue(field) {
+				continue
+			}
+			if field.Kind() == reflect.Ptr && field.IsZero() {
+				continue
+			}
+			key = jsonTags[0]
+		}
 
 		strValue := ""
 		if fieldType.Type.String() == "time.Time" {
@@ -1037,16 +1068,9 @@ func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interf
 			}
 			continue
 		} else {
-			// 所有类型都转换为 String 类型
 			strValue = go_format.FormatInstance.ToString(field.Interface())
 		}
-		tag := fieldType.Tag.Get("json")
-		if tag != "" {
-			key := strings.Split(tag, ",")[0]
-			result[key] = strValue
-		} else {
-			result[fieldType.Name] = strValue
-		}
+		result[key] = strValue
 	}
 	return nil
 }
