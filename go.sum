@@ -24,6 +24,8 @@ github.com/mitchellh/mapstructure v1.1.2 h1:fmNYVwqnSfB9mZU6OS2O6GsXM+wcskZDuKQz
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/pefish/go-format v0.2.5 h1:xBUwib/RYBayh4c/FCIl/eLFsviSmgK22rvSSVcDq1k=
 github.com/pefish/go-format v0.2.5/go.mod h1:+uvTouHD3etU8rXK07QE9qGhmxahhmMt3zqzLQWC57I=
+github.com/pefish/go-format v0.2.7 h1:fMGmuhXW9CjcO0cNt/U5MBwHQLjSmxb0lXcoDyy3HnM=
+github.com/pefish/go-format v0.2.7/go.mod h1:+uvTouHD3etU8rXK07QE9qGhmxahhmMt3zqzLQWC57I=
 github.com/pefish/go-logger v0.5.3 h1:T8iZtppr8SnwmjQMy4QWp17eZbanOP8V5793LNbStdk=
 github.com/pefish/go-logger v0.5.3/go.mod h1:IN1qdbxaVfsT518o9lsj8YY0bCi6E8kakuiVzG6pICA=
 github.com/pefish/go-test v0.0.4 h1:s1RmZWe91K1MtENJUcl7CjGUFK/TmleZ5h3OkHq/BTI=

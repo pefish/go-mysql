@@ -1017,18 +1017,6 @@ func (mysql *builderClass) BuildSelectSql(tableName string, select_ string, args
 	return str, paramArgs, nil
 }
 
-func isZeroValue(val reflect.Value) bool {
-	switch val.Kind() {
-	case reflect.Func, reflect.Map, reflect.Slice:
-		return val.IsNil()
-	case reflect.Array, reflect.Chan, reflect.String, reflect.Interface, reflect.Ptr:
-		return val.IsZero()
-	}
-
-	// 对于结构体和基本类型，使用 IsZero 方法
-	return val.IsZero()
-}
-
 func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interface{}) error {
 	objVal := reflect.ValueOf(in_)
 	if objVal.Kind() == reflect.Map {
@@ -1049,10 +1037,7 @@ func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interf
 		jsonTag := fieldType.Tag.Get("json")
 		if jsonTag != "" {
 			jsonTags := strings.Split(jsonTag, ",")
-			if len(jsonTags) > 1 && jsonTags[1] == "omitempty" && isZeroValue(field) {
-				continue
-			}
-			if field.Kind() == reflect.Ptr && field.IsZero() {
+			if go_format.FormatInstance.IsZeroValue(field) {
 				continue
 			}
 			key = jsonTags[0]
