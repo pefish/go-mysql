@@ -3,7 +3,7 @@ module github.com/pefish/go-mysql
 require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/pefish/go-format v0.2.7
+	github.com/pefish/go-format v0.2.8
 	github.com/pefish/go-logger v0.5.3
 	github.com/pefish/go-test v0.0.4
 	github.com/pkg/errors v0.9.1
