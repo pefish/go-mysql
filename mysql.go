@@ -103,7 +103,7 @@ type MysqlClass struct {
 func NewMysqlInstance() *MysqlClass {
 	return &MysqlClass{
 		tagName: `json`,
-		logger:  go_logger.DefaultLogger,
+		logger:  go_logger.Logger,
 	}
 }
 
