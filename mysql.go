@@ -1037,7 +1037,7 @@ func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interf
 		jsonTag := fieldType.Tag.Get("json")
 		if jsonTag != "" {
 			jsonTags := strings.Split(jsonTag, ",")
-			if go_format.FormatInstance.IsZeroValue(field) {
+			if jsonTags[1] == "omitempty" && go_format.FormatInstance.IsZeroValue(field) { // 如果标记了omitempty且是零值，则不映射到 map 中
 				continue
 			}
 			key = jsonTags[0]
