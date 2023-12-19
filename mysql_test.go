@@ -5,7 +5,24 @@ import (
 	"github.com/pefish/go-test"
 	"strings"
 	"testing"
+	"time"
 )
+
+type IdType struct {
+	Id uint64 `json:"id,omitempty"`
+}
+
+type DbTime struct {
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+}
+
+type Test struct {
+	IdType
+	A string `json:"a"`
+	B uint64 `json:"b"`
+	DbTime
+}
 
 func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 	builder := builderClass{}
@@ -62,23 +79,20 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 	go_test_.Equal(t, true, strings.HasPrefix(sql1, "INSERT INTO table "))
 	go_test_.Equal(t, 9, len(params1))
 
-	type Test struct {
-		A string `json:"a"`
-		B uint64 `json:"b"`
-	}
 	sql2, params2 := builder.MustBuildInsertSql(`table`, []Test{
 		{
-			B: 123,
-			A: `hfhd`,
+			IdType: IdType{Id: 12},
+			B:      123,
+			A:      `hfhd`,
 		},
 		{
 			B: 345,
 			A: `aaa`,
 		},
 	}, buildInsertSqlOpt{})
-	//fmt.Println(sql2, params2)
+	fmt.Println(sql2, params2)
 	go_test_.Equal(t, true, strings.HasPrefix(sql2, "INSERT INTO table "))
-	go_test_.Equal(t, 4, len(params2))
+	go_test_.Equal(t, 6, len(params2))
 }
 
 func TestBuilderClass_BuildCountSql(t *testing.T) {
