@@ -273,7 +273,7 @@ func TestMysqlClass_correctSelectStar(t *testing.T) {
 
 func Test_builderClass_BuildSelectSql1(t *testing.T) {
 	builder := &builderClass{}
-	sql, params, err := builder.BuildSelectSql(
+	sql, params, err := builder.buildSelectSql(
 		`table`,
 		`*`,
 		map[string]interface{}{
@@ -284,7 +284,7 @@ func Test_builderClass_BuildSelectSql1(t *testing.T) {
 	go_test_.Equal(t, "select * from table ", sql)
 	go_test_.Equal(t, 0, len(params))
 
-	sql1, params1, err1 := builder.BuildSelectSql(
+	sql1, params1, err1 := builder.buildSelectSql(
 		`table`,
 		`*`,
 		map[string]interface{}{

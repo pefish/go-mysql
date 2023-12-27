@@ -29,24 +29,17 @@ type IMysql interface {
 	MustRawExec(sql string, values ...interface{}) (uint64, uint64)
 	RawSelectByStr(dest interface{}, select_ string, str string, values ...interface{}) error
 	RawExec(sql string, values ...interface{}) (uint64, uint64, error)
-	MustRawSelect(dest interface{}, sql string, values ...interface{})
-	RawSelect(dest interface{}, sql string, values ...interface{}) error
 	MustCount(tableName string, args ...interface{}) uint64
 	Count(tableName string, args ...interface{}) (uint64, error)
 	RawCount(tableName string, args ...interface{}) (uint64, error)
 	MustSum(tableName string, sumTarget string, args ...interface{}) string
 	Sum(tableName string, sumTarget string, args ...interface{}) (string, error)
-	MustSelectFirst(dest interface{}, tableName string, select_ string, args ...interface{}) bool
-	SelectFirst(dest interface{}, tableName string, select_ string, args ...interface{}) (bool, error)
-	SelectFieldStrFirst(fieldName string, tableName string, args ...interface{}) (bool, *string, error)
-	MustSelectFirstByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) bool
-	SelectFirstByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) (bool, error)
-	MustSelectById(dest interface{}, tableName string, select_ string, id uint64, forUpdate bool) bool
-	SelectById(dest interface{}, tableName string, select_ string, id uint64, forUpdate bool) (notFound bool, err error)
-	MustSelect(dest interface{}, tableName string, select_ string, args ...interface{})
-	Select(dest interface{}, tableName string, select_ string, args ...interface{}) error
-	MustSelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{})
-	SelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) error
+	MustSelectFirst(dest interface{}, selectParams *SelectParams, values ...interface{}) bool
+	SelectFirst(dest interface{}, selectParams *SelectParams, values ...interface{}) (bool, error)
+	MustSelectById(dest interface{}, tableName string, select_ string, id uint64) bool
+	SelectById(dest interface{}, tableName string, select_ string, id uint64) (notFound bool, err error)
+	MustSelect(dest interface{}, selectParams *SelectParams, values ...interface{})
+	Select(dest interface{}, selectParams *SelectParams, values ...interface{}) error
 	MustAffectedInsert(tableName string, params interface{}) (lastInsertId uint64)
 	MustInsert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64)
 	Insert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
@@ -58,8 +51,6 @@ type IMysql interface {
 	MustUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64)
 	Update(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
 	MustAffectedUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64)
-	MustRawSelectFirst(dest interface{}, sql string, values ...interface{}) bool
-	RawSelectFirst(dest interface{}, sql string, values ...interface{}) (bool, error)
 
 	MustBegin() *MysqlClass
 	Begin() (*MysqlClass, error)
@@ -214,7 +205,7 @@ func (mc *MysqlClass) RawSelectByStr(dest interface{}, select_ string, str strin
 		select_,
 		str,
 	)
-	err := mc.RawSelect(dest, sql, values...)
+	err := mc.rawSelect(dest, sql, values...)
 	if err != nil {
 		return err
 	}
@@ -275,13 +266,6 @@ func (mc *MysqlClass) RawExec(sql string, values ...interface{}) (uint64, uint64
 	return uint64(lastInsertId), uint64(rowsAffected), nil
 }
 
-func (mc *MysqlClass) MustRawSelect(dest interface{}, sql string, values ...interface{}) {
-	err := mc.RawSelect(dest, sql, values...)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func (mc *MysqlClass) correctSelectStar(dest interface{}, sql string) string {
 	sql = strings.TrimLeft(sql, " \n\t")
 	if strings.HasPrefix(sql, `select *`) {
@@ -303,7 +287,7 @@ func (mc *MysqlClass) replaceIfStar(dest interface{}, str string) string {
 	return str
 }
 
-func (mc *MysqlClass) RawSelect(dest interface{}, sql string, values ...interface{}) error {
+func (mc *MysqlClass) rawSelect(dest interface{}, sql string, values ...interface{}) error {
 	sql = mc.correctSelectStar(dest, sql)
 	sql, values, err := mc.processValues(sql, values)
 	mc.printDebugInfo(sql, values)
@@ -337,7 +321,7 @@ func (mc *MysqlClass) Count(tableName string, args ...interface{}) (uint64, erro
 	if err != nil {
 		return 0, err
 	}
-	_, err = mc.RawSelectFirst(&countStruct, sql, paramArgs...)
+	_, err = mc.rawSelectFirst(&countStruct, sql, paramArgs...)
 	if err != nil {
 		return 0, err
 	}
@@ -380,7 +364,7 @@ func (mc *MysqlClass) Sum(tableName string, sumTarget string, args ...interface{
 	if err != nil {
 		return ``, err
 	}
-	_, err = mc.RawSelectFirst(&sumStruct, sql, paramArgs...)
+	_, err = mc.rawSelectFirst(&sumStruct, sql, paramArgs...)
 	if err != nil {
 		return ``, err
 	}
@@ -390,120 +374,89 @@ func (mc *MysqlClass) Sum(tableName string, sumTarget string, args ...interface{
 	return *sumStruct.Sum, nil
 }
 
-func (mc *MysqlClass) MustSelectFirst(dest interface{}, tableName string, select_ string, args ...interface{}) bool {
-	bool_, err := mc.SelectFirst(dest, tableName, select_, args...)
+func (mc *MysqlClass) MustSelectFirst(
+	dest interface{},
+	selectParams *SelectParams,
+	values ...interface{},
+) bool {
+	bool_, err := mc.SelectFirst(dest, selectParams, values...)
 	if err != nil {
 		panic(err)
 	}
 	return bool_
 }
 
-func (mc *MysqlClass) SelectFirst(dest interface{}, tableName string, select_ string, args ...interface{}) (bool, error) {
-	select_ = mc.replaceIfStar(dest, select_)
-	sql, paramArgs, err := builder.BuildSelectSql(tableName, select_, args...)
+func (mc *MysqlClass) SelectFirst(
+	dest interface{},
+	selectParams *SelectParams,
+	values ...interface{},
+) (bool, error) {
+	selectParams.Select = mc.replaceIfStar(dest, selectParams.Select)
+	sql, paramArgs, err := builder.buildSelectSql(selectParams, values...)
 	if err != nil {
 		return true, err
 	}
-	return mc.RawSelectFirst(dest, sql, paramArgs...)
+	return mc.rawSelectFirst(dest, sql, paramArgs...)
 }
 
-func (mc *MysqlClass) SelectFieldStrFirst(fieldName string, tableName string, args ...interface{}) (bool, *string, error) {
-	sql, paramArgs, err := builder.BuildSelectSql(tableName, fmt.Sprintf("%s as target", fieldName), args...)
-	if err != nil {
-		return true, nil, err
-	}
-	var targetStruct struct {
-		Target *string `json:"target"`
-	}
-	notFound, err := mc.RawSelectFirst(&targetStruct, sql, paramArgs...)
-	if err != nil || notFound {
-		return notFound, nil, err
-	}
-	return false, targetStruct.Target, nil
-}
-
-func (mc *MysqlClass) MustSelectFirstByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) bool {
-	bool_, err := mc.SelectFirstByStr(dest, tableName, select_, str, values...)
+func (mc *MysqlClass) MustSelectById(
+	dest interface{},
+	tableName string,
+	select_ string,
+	id uint64,
+) bool {
+	bool_, err := mc.SelectById(dest, tableName, select_, id)
 	if err != nil {
 		panic(err)
 	}
 	return bool_
 }
 
-func (mc *MysqlClass) SelectFirstByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) (bool, error) {
-	select_ = mc.replaceIfStar(dest, select_)
-	sql := fmt.Sprintf(
-		`select %s from %s %s`,
-		select_,
-		tableName,
-		str,
-	)
-	return mc.RawSelectFirst(dest, sql, values...)
-}
-
-func (mc *MysqlClass) MustSelectById(dest interface{}, tableName string, select_ string, id uint64, forUpdate bool) bool {
-	bool_, err := mc.SelectById(dest, tableName, select_, id, forUpdate)
-	if err != nil {
-		panic(err)
-	}
-	return bool_
-}
-
-func (mc *MysqlClass) SelectById(dest interface{}, tableName string, select_ string, id uint64, forUpdate bool) (notFound bool, err error) {
+func (mc *MysqlClass) SelectById(
+	dest interface{},
+	tableName string,
+	select_ string,
+	id uint64,
+) (notFound bool, err error) {
 	select_ = mc.replaceIfStar(dest, select_)
 	paramArgs := make([]interface{}, 0)
-	sql, paramArgs, err := builder.BuildSelectSql(
-		tableName,
-		select_,
-		map[string]interface{}{
-			`id`: id,
+	sql, paramArgs, err := builder.buildSelectSql(
+		&SelectParams{
+			TableName: tableName,
+			Select:    select_,
+			Where: map[string]interface{}{
+				`id`: id,
+			},
 		},
-		nil,
-		nil,
-		forUpdate,
 	)
 	if err != nil {
 		return true, err
 	}
-	return mc.RawSelectFirst(dest, sql, paramArgs...)
+	return mc.rawSelectFirst(dest, sql, paramArgs...)
 }
 
-func (mc *MysqlClass) MustSelect(dest interface{}, tableName string, select_ string, args ...interface{}) {
-	err := mc.Select(dest, tableName, select_, args...)
+func (mc *MysqlClass) MustSelect(dest interface{}, selectParams *SelectParams, values ...interface{}) {
+	err := mc.Select(dest, selectParams, values...)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (mc *MysqlClass) Select(dest interface{}, tableName string, select_ string, args ...interface{}) error {
-	select_ = mc.replaceIfStar(dest, select_)
-	sql, paramArgs, err := builder.BuildSelectSql(tableName, select_, args...)
+type SelectParams struct {
+	TableName string
+	Select    string
+	Where     interface{}
+	OrderBy   string
+	Limit     string
+}
+
+func (mc *MysqlClass) Select(dest interface{}, selectParams *SelectParams, values ...interface{}) error {
+	selectParams.Select = mc.replaceIfStar(dest, selectParams.Select)
+	sql, paramArgs, err := builder.buildSelectSql(selectParams, values...)
 	if err != nil {
 		return err
 	}
-	err = mc.RawSelect(dest, sql, paramArgs...)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (mc *MysqlClass) MustSelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) {
-	err := mc.SelectByStr(dest, tableName, select_, str, values...)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (mc *MysqlClass) SelectByStr(dest interface{}, tableName string, select_ string, str string, values ...interface{}) error {
-	select_ = mc.replaceIfStar(dest, select_)
-	sql := fmt.Sprintf(
-		`select %s from %s %s`,
-		select_,
-		tableName,
-		str,
-	)
-	err := mc.RawSelect(dest, sql, values...)
+	err = mc.rawSelect(dest, sql, paramArgs...)
 	if err != nil {
 		return err
 	}
@@ -613,15 +566,7 @@ func (mc *MysqlClass) MustAffectedUpdate(tableName string, update interface{}, a
 	return lastInsertId
 }
 
-func (mc *MysqlClass) MustRawSelectFirst(dest interface{}, sql string, values ...interface{}) bool {
-	notFound, err := mc.RawSelectFirst(dest, sql, values...)
-	if err != nil {
-		panic(err)
-	}
-	return notFound
-}
-
-func (mc *MysqlClass) RawSelectFirst(dest interface{}, sql string, values ...interface{}) (bool, error) {
+func (mc *MysqlClass) rawSelectFirst(dest interface{}, sql string, values ...interface{}) (bool, error) {
 	sql = mc.correctSelectStar(dest, sql)
 	sql, values, err := mc.processValues(sql, values)
 	mc.printDebugInfo(sql, values)
@@ -989,31 +934,24 @@ func (mysql *builderClass) BuildWhere(where interface{}, args []interface{}) ([]
 	return paramArgs, "", nil
 }
 
-func (mysql *builderClass) MustBuildSelectSql(tableName string, select_ string, args ...interface{}) (string, []interface{}) {
-	str, paramArgs, err := mysql.BuildSelectSql(tableName, select_, args...)
+func (mysql *builderClass) buildSelectSql(selectParams *SelectParams, values ...interface{}) (sql string, paramArgs []interface{}, err error) {
+	paramArgs, whereStr, err := mysql.BuildWhere(selectParams.Where, values)
 	if err != nil {
-		panic(err)
-	}
-	return str, paramArgs
-}
-
-func (mysql *builderClass) BuildSelectSql(tableName string, select_ string, args ...interface{}) (string, []interface{}, error) {
-	var whereStr = ``
-	paramArgs := make([]interface{}, 0)
-	if len(args) > 0 && args[0] != nil {
-		var err error
-		paramArgs, whereStr, err = mysql.BuildWhere(args[0], args[1:])
-		if err != nil {
-			return ``, nil, err
-		}
+		return ``, nil, err
 	}
 
 	str := fmt.Sprintf(
 		`select %s from %s %s`,
-		select_,
-		tableName,
+		selectParams.Select,
+		selectParams.TableName,
 		whereStr,
 	)
+	if selectParams.OrderBy != "" {
+		str += fmt.Sprintf(" %s", selectParams.OrderBy)
+	}
+	if selectParams.Limit != "" {
+		str += fmt.Sprintf(" %s", selectParams.Limit)
+	}
 	return str, paramArgs, nil
 }
 
