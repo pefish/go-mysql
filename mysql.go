@@ -447,7 +447,11 @@ func (mc *MysqlClass) SelectById(
 	return mc.rawSelectFirst(dest, sql, paramArgs...)
 }
 
-func (mc *MysqlClass) MustSelect(dest interface{}, selectParams *SelectParams, values ...interface{}) {
+func (mc *MysqlClass) MustSelect(
+	dest interface{},
+	selectParams *SelectParams,
+	values ...interface{},
+) {
 	err := mc.Select(dest, selectParams, values...)
 	if err != nil {
 		panic(err)
@@ -462,7 +466,11 @@ type SelectParams struct {
 	Limit     string
 }
 
-func (mc *MysqlClass) Select(dest interface{}, selectParams *SelectParams, values ...interface{}) error {
+func (mc *MysqlClass) Select(
+	dest interface{},
+	selectParams *SelectParams,
+	values ...interface{},
+) error {
 	selectParams.Select = mc.replaceIfStar(dest, selectParams.Select)
 	sql, paramArgs, err := builder.buildSelectSql(selectParams, values...)
 	if err != nil {
