@@ -352,7 +352,11 @@ func (mc *MysqlClass) RawCount(sql string, values ...interface{}) (uint64, error
 	return countStruct.Count, nil
 }
 
-func (mc *MysqlClass) MustSum(tableName string, sumTarget string, args ...interface{}) string {
+func (mc *MysqlClass) MustSum(
+	tableName string,
+	sumTarget string,
+	args ...interface{},
+) string {
 	result, err := mc.Sum(tableName, sumTarget, args...)
 	if err != nil {
 		panic(err)
@@ -360,7 +364,11 @@ func (mc *MysqlClass) MustSum(tableName string, sumTarget string, args ...interf
 	return result
 }
 
-func (mc *MysqlClass) Sum(tableName string, sumTarget string, args ...interface{}) (string, error) {
+func (mc *MysqlClass) Sum(
+	tableName string,
+	sumTarget string,
+	args ...interface{},
+) (string, error) {
 	var sumStruct struct {
 		Sum *string `json:"sum"`
 	}
