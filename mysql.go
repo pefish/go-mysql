@@ -304,7 +304,7 @@ func (mc *MysqlClass) rawSelect(
 		err = mc.Db.Select(dest, sql, values...)
 	}
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -347,7 +347,7 @@ func (mc *MysqlClass) RawCount(sql string, values ...interface{}) (uint64, error
 		err = mc.Db.Select(&countStruct, sql, values...)
 	}
 	if err != nil {
-		return 0, err
+		return 0, errors.WithStack(err)
 	}
 	return countStruct.Count, nil
 }
@@ -603,7 +603,7 @@ func (mc *MysqlClass) rawSelectFirst(dest interface{}, sql string, values ...int
 		if err.Error() == `sql: no rows in result set` {
 			return true, nil
 		} else {
-			return true, err
+			return true, errors.WithStack(err)
 		}
 	}
 
