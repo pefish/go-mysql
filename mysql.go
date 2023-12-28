@@ -287,7 +287,11 @@ func (mc *MysqlClass) replaceIfStar(dest interface{}, str string) string {
 	return str
 }
 
-func (mc *MysqlClass) rawSelect(dest interface{}, sql string, values ...interface{}) error {
+func (mc *MysqlClass) rawSelect(
+	dest interface{},
+	sql string,
+	values ...interface{},
+) error {
 	sql = mc.correctSelectStar(dest, sql)
 	sql, values, err := mc.processValues(sql, values)
 	mc.printDebugInfo(sql, values)
