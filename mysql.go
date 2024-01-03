@@ -777,7 +777,7 @@ func (mysql *builderClass) MustBuildCountSql(tableName string, args ...interface
 
 func (mysql *builderClass) BuildCountSql(tableName string, args ...interface{}) (string, []interface{}, error) {
 	var whereStr = ``
-	var paramArgs = []interface{}{}
+	paramArgs := make([]interface{}, 0)
 	if len(args) > 0 && args[0] != nil {
 		var err error
 		paramArgs, whereStr, err = mysql.buildWhere(args[0], args[1:])
@@ -804,7 +804,7 @@ func (mysql *builderClass) MustBuildSumSql(tableName string, sumTarget string, a
 
 func (mysql *builderClass) BuildSumSql(tableName string, sumTarget string, args ...interface{}) (string, []interface{}, error) {
 	var whereStr = ``
-	var paramArgs = []interface{}{}
+	paramArgs := make([]interface{}, 0)
 	if len(args) > 0 && args[0] != nil {
 		var err error
 		paramArgs, whereStr, err = mysql.buildWhere(args[0], args[1:])
@@ -888,6 +888,9 @@ func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (cols []stri
 }
 
 func (mysql *builderClass) buildWhere(where interface{}, args []interface{}) (paramArgs []interface{}, whereSql string, err error) {
+	if where == nil {
+		return make([]interface{}, 0), "", nil
+	}
 	type_ := reflect.TypeOf(where)
 	paramArgs = args
 	str := ``
