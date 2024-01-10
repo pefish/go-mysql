@@ -40,7 +40,6 @@ type IMysql interface {
 	SelectById(dest interface{}, tableName string, select_ string, id uint64) (notFound bool, err error)
 	MustSelect(dest interface{}, selectParams *SelectParams, values ...interface{})
 	Select(dest interface{}, selectParams *SelectParams, values ...interface{}) error
-	MustAffectedInsert(tableName string, params interface{}) (lastInsertId uint64)
 	MustInsert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64)
 	Insert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
 	MustInsertIgnore(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64)
@@ -50,7 +49,6 @@ type IMysql interface {
 	ReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
 	MustUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64)
 	Update(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
-	MustAffectedUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64)
 
 	MustBegin() *MysqlClass
 	Begin() (*MysqlClass, error)
@@ -321,7 +319,7 @@ func (mc *MysqlClass) Count(tableName string, args ...interface{}) (uint64, erro
 	var countStruct struct {
 		Count uint64 `json:"count"`
 	}
-	sql, paramArgs, err := builder.BuildCountSql(tableName, args...)
+	sql, paramArgs, err := builder.buildCountSql(tableName, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -372,7 +370,7 @@ func (mc *MysqlClass) Sum(
 	var sumStruct struct {
 		Sum *string `json:"sum"`
 	}
-	sql, paramArgs, err := builder.BuildSumSql(tableName, sumTarget, args...)
+	sql, paramArgs, err := builder.buildSumSql(tableName, sumTarget, args...)
 	if err != nil {
 		return ``, err
 	}
@@ -483,17 +481,6 @@ func (mc *MysqlClass) Select(
 	return nil
 }
 
-func (mc *MysqlClass) MustAffectedInsert(tableName string, params interface{}) (lastInsertId uint64) {
-	lastInsertId, rowsAffected, err := mc.Insert(tableName, params)
-	if err != nil {
-		panic(err)
-	}
-	if rowsAffected == 0 {
-		panic(errors.New(`no affected`))
-	}
-	return lastInsertId
-}
-
 func (mc *MysqlClass) MustInsert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
 	lastInsertId, rowsAffected, err := mc.Insert(tableName, params)
 	if err != nil {
@@ -503,7 +490,7 @@ func (mc *MysqlClass) MustInsert(tableName string, params interface{}) (lastInse
 }
 
 func (mc *MysqlClass) Insert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
-	sql, paramArgs, err := builder.BuildInsertSql(tableName, params, buildInsertSqlOpt{})
+	sql, paramArgs, err := builder.buildInsertSql(tableName, params, buildInsertSqlOpt{})
 	if err != nil {
 		return 0, 0, err
 	}
@@ -519,7 +506,7 @@ func (mc *MysqlClass) MustInsertIgnore(tableName string, params interface{}) (la
 }
 
 func (mc *MysqlClass) InsertIgnore(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
-	sql, paramArgs, err := builder.BuildInsertSql(tableName, params, buildInsertSqlOpt{
+	sql, paramArgs, err := builder.buildInsertSql(tableName, params, buildInsertSqlOpt{
 		InsertIgnore: true,
 	})
 	if err != nil {
@@ -532,7 +519,7 @@ func (mc *MysqlClass) InsertOnDuplicateKeyUpdate(tableName string, update map[st
 	for k, v := range update {
 		otherParams[k] = v
 	}
-	sql, paramArgs, err := builder.BuildInsertSql(tableName, otherParams, buildInsertSqlOpt{
+	sql, paramArgs, err := builder.buildInsertSql(tableName, otherParams, buildInsertSqlOpt{
 		OnDuplicateKeyUpdate: update,
 	})
 	if err != nil {
@@ -550,7 +537,7 @@ func (mc *MysqlClass) MustReplaceInto(tableName string, params interface{}) (las
 }
 
 func (mc *MysqlClass) ReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
-	sql, paramArgs, err := builder.BuildInsertSql(tableName, params, buildInsertSqlOpt{
+	sql, paramArgs, err := builder.buildInsertSql(tableName, params, buildInsertSqlOpt{
 		ReplaceInto: true,
 	})
 	if err != nil {
@@ -568,22 +555,11 @@ func (mc *MysqlClass) MustUpdate(tableName string, update interface{}, args ...i
 }
 
 func (mc *MysqlClass) Update(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
-	sql, paramArgs, err := builder.BuildUpdateSql(tableName, update, args...)
+	sql, paramArgs, err := builder.buildUpdateSql(tableName, update, args...)
 	if err != nil {
 		return 0, 0, err
 	}
 	return mc.RawExec(sql, paramArgs...)
-}
-
-func (mc *MysqlClass) MustAffectedUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64) {
-	lastInsertId, rowsAffected, err := mc.Update(tableName, update, args...)
-	if err != nil {
-		panic(err)
-	}
-	if rowsAffected == 0 {
-		panic(errors.New(`no affected`))
-	}
-	return lastInsertId
 }
 
 func (mc *MysqlClass) rawSelectFirst(dest interface{}, sql string, values ...interface{}) (bool, error) {
@@ -681,15 +657,7 @@ type buildInsertSqlOpt struct {
 	OnDuplicateKeyUpdate map[string]interface{}
 }
 
-func (mysql *builderClass) MustBuildInsertSql(tableName string, params interface{}, opt buildInsertSqlOpt) (string, []interface{}) {
-	str, paramArgs, err := mysql.BuildInsertSql(tableName, params, opt)
-	if err != nil {
-		panic(err)
-	}
-	return str, paramArgs
-}
-
-func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, opt buildInsertSqlOpt) (string, []interface{}, error) {
+func (mysql *builderClass) buildInsertSql(tableName string, params interface{}, opt buildInsertSqlOpt) (string, []interface{}, error) {
 	var cols []string
 	var vals []string
 	var paramArgs = make([]interface{}, 0)
@@ -703,7 +671,7 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 			return ``, nil, errors.New(`Map value type error.`)
 		}
 	case reflect.Struct:
-		map_ := make(map[string]interface{}, 0)
+		map_ := make(map[string]interface{})
 		err := mysql.structToMap(params, map_)
 		if err != nil {
 			return ``, nil, err
@@ -714,7 +682,7 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 		if value_.Len() == 0 {
 			return "", nil, errors.New("Slice length cannot be 0.")
 		}
-		map_ := make(map[string]interface{}, 0)
+		map_ := make(map[string]interface{})
 		err := mysql.structToMap(value_.Index(0).Interface(), map_)
 		if err != nil {
 			return ``, nil, err
@@ -724,7 +692,7 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 		}
 		q := squirrel.Insert(tableName).Columns(cols...)
 		for i := 0; i < value_.Len(); i++ {
-			map_ := make(map[string]interface{}, 0)
+			map_ := make(map[string]interface{})
 			err := mysql.structToMap(value_.Index(i).Interface(), map_)
 			if err != nil {
 				return ``, nil, err
@@ -767,15 +735,7 @@ func (mysql *builderClass) BuildInsertSql(tableName string, params interface{}, 
 	return str, paramArgs, nil
 }
 
-func (mysql *builderClass) MustBuildCountSql(tableName string, args ...interface{}) (string, []interface{}) {
-	paramArgs, whereStr, err := mysql.BuildCountSql(tableName, args...)
-	if err != nil {
-		panic(err)
-	}
-	return paramArgs, whereStr
-}
-
-func (mysql *builderClass) BuildCountSql(tableName string, args ...interface{}) (string, []interface{}, error) {
+func (mysql *builderClass) buildCountSql(tableName string, args ...interface{}) (string, []interface{}, error) {
 	var whereStr = ``
 	paramArgs := make([]interface{}, 0)
 	if len(args) > 0 && args[0] != nil {
@@ -794,15 +754,7 @@ func (mysql *builderClass) BuildCountSql(tableName string, args ...interface{}) 
 	return str, paramArgs, nil
 }
 
-func (mysql *builderClass) MustBuildSumSql(tableName string, sumTarget string, args ...interface{}) (string, []interface{}) {
-	str, paramArgs, err := mysql.BuildSumSql(tableName, sumTarget, args...)
-	if err != nil {
-		panic(err)
-	}
-	return str, paramArgs
-}
-
-func (mysql *builderClass) BuildSumSql(tableName string, sumTarget string, args ...interface{}) (string, []interface{}, error) {
+func (mysql *builderClass) buildSumSql(tableName string, sumTarget string, args ...interface{}) (string, []interface{}, error) {
 	var whereStr = ``
 	paramArgs := make([]interface{}, 0)
 	if len(args) > 0 && args[0] != nil {
@@ -903,7 +855,7 @@ func (mysql *builderClass) buildWhere(where interface{}, args []interface{}) (pa
 			return nil, ``, errors.New(`map value type error`)
 		}
 	case reflect.Struct:
-		map_ := make(map[string]interface{}, 0)
+		map_ := make(map[string]interface{})
 		err := mysql.structToMap(where, map_)
 		if err != nil {
 			return nil, ``, err
@@ -962,12 +914,16 @@ func (mysql *builderClass) buildSelectSql(selectParams *SelectParams, values ...
 
 func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interface{}) error {
 	objVal := reflect.ValueOf(in_)
+	if objVal.Kind() == reflect.Ptr {
+		objVal = objVal.Elem()
+	}
 	if objVal.Kind() == reflect.Map {
 		for k, v := range in_.(map[string]interface{}) {
 			result[k] = v
 		}
 		return nil
 	}
+
 	if objVal.Kind() != reflect.Struct {
 		return errors.New("Must be struct type.")
 	}
@@ -1003,15 +959,7 @@ func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interf
 	return nil
 }
 
-func (mysql *builderClass) MustBuildUpdateSql(tableName string, update interface{}, args ...interface{}) (string, []interface{}) {
-	str, paramArgs, err := mysql.BuildUpdateSql(tableName, update, args...)
-	if err != nil {
-		panic(err)
-	}
-	return str, paramArgs
-}
-
-func (mysql *builderClass) BuildUpdateSql(tableName string, update interface{}, args ...interface{}) (string, []interface{}, error) {
+func (mysql *builderClass) buildUpdateSql(tableName string, update interface{}, args ...interface{}) (string, []interface{}, error) {
 	var updateStr = ``
 	paramArgs := make([]interface{}, 0)
 	type_ := reflect.TypeOf(update)
@@ -1030,7 +978,7 @@ func (mysql *builderClass) BuildUpdateSql(tableName string, update interface{}, 
 			return ``, nil, errors.New(`map value type error`)
 		}
 	case reflect.Struct:
-		map_ := make(map[string]interface{}, 0)
+		map_ := make(map[string]interface{})
 		err := mysql.structToMap(update, map_)
 		if err != nil {
 			return ``, nil, err

@@ -26,7 +26,7 @@ type Test struct {
 
 func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 	builder := builderClass{}
-	sql, params := builder.MustBuildUpdateSql(`table`, map[string]interface{}{
+	sql, params, err := builder.buildUpdateSql(`table`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 	}, []map[string]interface{}{
@@ -38,27 +38,30 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 			`bnn`: `345`,
 		},
 	})
+	go_test_.Equal(t, nil, err)
 	go_test_.Equal(t, true, strings.HasPrefix(sql, "update table set "))
 	go_test_.Equal(t, 5, len(params))
 
-	_, params1 := builder.MustBuildUpdateSql(`table`, map[string]interface{}{
+	_, params1, err := builder.buildUpdateSql(`table`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 	}, `where b = ? and f = ?`, 23, 19)
+	go_test_.Equal(t, nil, err)
 	//go_test_.Equal(t, "update table set a = ?,c = ? where b = ? and f = ?", sql1)
 	go_test_.Equal(t, 4, len(params1))
 }
 
 func TestBuilderClass_BuildInsertSql(t *testing.T) {
 	builder := builderClass{}
-	sql, params := builder.MustBuildInsertSql(`table`, map[string]interface{}{
+	sql, params, err := builder.buildInsertSql(`table`, map[string]interface{}{
 		`a`: 123,
 		`c`: `s: = hfhd`,
 	}, buildInsertSqlOpt{})
+	go_test_.Equal(t, nil, err)
 	go_test_.Equal(t, true, strings.HasPrefix(sql, "insert into table "))
 	go_test_.Equal(t, 1, len(params))
 
-	sql1, params1 := builder.MustBuildInsertSql(`table`, []map[string]interface{}{
+	sql1, params1, err := builder.buildInsertSql(`table`, []map[string]interface{}{
 		{
 			`a`: 123,
 			`c`: `hfhd`,
@@ -76,10 +79,11 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 		},
 	}, buildInsertSqlOpt{})
 	//fmt.Println(sql1, params1)
+	go_test_.Equal(t, nil, err)
 	go_test_.Equal(t, true, strings.HasPrefix(sql1, "INSERT INTO table "))
 	go_test_.Equal(t, 9, len(params1))
 
-	sql2, params2 := builder.MustBuildInsertSql(`table`, []Test{
+	sql2, params2, err := builder.buildInsertSql(`table`, []Test{
 		{
 			IdType: IdType{Id: 12},
 			B:      123,
@@ -90,6 +94,7 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 			A: `aaa`,
 		},
 	}, buildInsertSqlOpt{})
+	go_test_.Equal(t, nil, err)
 	fmt.Println(sql2, params2)
 	go_test_.Equal(t, true, strings.HasPrefix(sql2, "INSERT INTO table "))
 	go_test_.Equal(t, 6, len(params2))
@@ -97,48 +102,53 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 
 func TestBuilderClass_BuildCountSql(t *testing.T) {
 	builder := builderClass{}
-	sql, params := builder.MustBuildCountSql(`table`, map[string]interface{}{
+	sql, params, err := builder.buildCountSql(`table`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 	})
+	go_test_.Equal(t, nil, err)
 	go_test_.Equal(t, true, strings.HasPrefix(sql, "select count(*) as count from table where "))
 	go_test_.Equal(t, 2, len(params))
 }
 
 func TestBuilderClass_BuildSumSql(t *testing.T) {
 	builder := builderClass{}
-	sql, params := builder.MustBuildSumSql(`table`, `aa`, map[string]interface{}{
+	sql, params, err := builder.buildSumSql(`table`, `aa`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 	})
+	go_test_.Equal(t, nil, err)
 	go_test_.Equal(t, true, strings.HasPrefix(sql, "select sum(aa) as sum from table where "))
 	go_test_.Equal(t, 2, len(params))
 }
 
 func TestBuilderClass_BuildWhere(t *testing.T) {
 	builder := builderClass{}
-	args, sql := builder.MustBuildWhere(map[string]interface{}{
+	args, sql, err := builder.buildWhere(map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 		`b`: `s:in ("haha","hehe")`,
 	}, nil)
+	go_test_.Equal(t, nil, err)
 	go_test_.Equal(t, true, strings.HasPrefix(sql, "where "))
 	go_test_.Equal(t, 2, len(args))
 
-	args1, sql1 := builder.MustBuildWhere(struct {
+	args1, sql1, err := builder.buildWhere(struct {
 		A string  `json:"a"`
 		B string  `json:"b"`
-		C *string `json:"c"`
+		C *string `json:"c,omitempty"`
 	}{
 		A: `35`,
 		B: `765`,
 		C: nil,
 	}, nil)
+	go_test_.Equal(t, nil, err)
 	//fmt.Println(args1, sql1)
 	go_test_.Equal(t, true, strings.HasPrefix(sql1, "where "))
 	go_test_.Equal(t, 2, len(args1))
 
-	args2, sql2 := builder.MustBuildWhere(`where a = ? and b = ?`, []interface{}{"1", "2"})
+	args2, sql2, err := builder.buildWhere(`where a = ? and b = ?`, []interface{}{"1", "2"})
+	go_test_.Equal(t, nil, err)
 	go_test_.Equal(t, "where a = ? and b = ?", sql2)
 	go_test_.Equal(t, 2, len(args2))
 
@@ -146,7 +156,7 @@ func TestBuilderClass_BuildWhere(t *testing.T) {
 
 func TestBuilderClass_BuildInsertSql2(t *testing.T) {
 	type Test2 struct {
-		C string `json:"c"`
+		C string `json:"c,omitempty"`
 	}
 
 	type Test1 struct {
@@ -158,15 +168,16 @@ func TestBuilderClass_BuildInsertSql2(t *testing.T) {
 		B: 123,
 		A: "456",
 	}
-	_, params := builder.MustBuildInsertSql(`table`, test1, buildInsertSqlOpt{})
-	//fmt.Println(sql, params)
+	sql, params, err := builder.buildInsertSql(`table`, test1, buildInsertSqlOpt{})
+	go_test_.Equal(t, nil, err)
+	fmt.Println(sql, params)
 	//go_test_.Equal(t, true, strings.HasPrefix(sql, "INSERT INTO table "))
 	go_test_.Equal(t, 2, len(params))
 }
 
 func TestBuilderClass_BuildInsertSql1(t *testing.T) {
 	builder := builderClass{}
-	sql, params := builder.MustBuildInsertSql(`table`, map[string]interface{}{
+	sql, params, err := builder.buildInsertSql(`table`, map[string]interface{}{
 		`a`: 123,
 		`c`: `hfhd`,
 	}, buildInsertSqlOpt{
@@ -174,24 +185,25 @@ func TestBuilderClass_BuildInsertSql1(t *testing.T) {
 			"a": 235,
 		},
 	})
+	go_test_.Equal(t, nil, err)
 	go_test_.Equal(t, true, strings.HasPrefix(sql, "insert into table "))
 	go_test_.Equal(t, 3, len(params))
 }
 
 func Test_builderClass_buildWhereFromMapInterface(t *testing.T) {
 	builder := builderClass{}
-	params, sql, err := builder.buildWhereFromMap(map[string]interface{}{
+	params, sql := builder.buildWhereFromMap(map[string]interface{}{
 		`a`: 123,
 		`c`: "s: in (35)",
 	})
-	go_test_.Equal(t, nil, err)
-	go_test_.Equal(t, "a = ? and c in (35)", sql)
+	go_test_.Equal(t, true, strings.Contains(sql, "a = ?"))
+	go_test_.Equal(t, true, strings.Contains(sql, "c in (35)"))
 	go_test_.Equal(t, 1, len(params))
 }
 
 func Test_builderClass_buildWhereFromMapInterface1(t *testing.T) {
 	builder := builderClass{}
-	params, sql, err := builder.buildWhereFromMap(map[string]interface{}{
+	params, sql := builder.buildWhereFromMap(map[string]interface{}{
 		`a`: 123,
 		`c`: []interface{}{
 			35,
@@ -199,25 +211,22 @@ func Test_builderClass_buildWhereFromMapInterface1(t *testing.T) {
 			11,
 		},
 	})
-	go_test_.Equal(t, nil, err)
 	go_test_.In(t, []interface{}{
 		"a = ? and c in (?,?,?)",
 		"c in (?,?,?) and a = ?",
 	}, sql)
 	go_test_.Equal(t, 4, len(params))
 
-	params1, sql1, err1 := builder.buildWhereFromMap(map[string]interface{}{
+	params1, sql1 := builder.buildWhereFromMap(map[string]interface{}{
 		`a`: 123,
 		`c`: []interface{}{},
 	})
-	go_test_.Equal(t, nil, err1)
 	go_test_.Equal(t, "a = ?", sql1)
 	go_test_.Equal(t, 1, len(params1))
 
-	params2, sql2, err2 := builder.buildWhereFromMap(map[string]interface{}{
+	params2, sql2 := builder.buildWhereFromMap(map[string]interface{}{
 		`c`: []string{},
 	})
-	go_test_.Equal(t, nil, err2)
 	go_test_.Equal(t, "", sql2)
 	go_test_.Equal(t, 0, len(params2))
 }
@@ -235,23 +244,29 @@ func TestMysqlClass_processValues(t *testing.T) {
 
 func Test_builderClass_BuildSelectSql(t *testing.T) {
 	builder := builderClass{}
-	sql, params := builder.MustBuildSelectSql(
-		`table`,
-		`*`,
-		map[string]interface{}{
-			"id": "s: in (1,2)",
+	sql, params, err := builder.buildSelectSql(
+		&SelectParams{
+			TableName: "table",
+			Select:    "*",
+			Where: map[string]interface{}{
+				"id": "s: in (1,2)",
+			},
 		},
 	)
+	go_test_.Equal(t, nil, err)
 	go_test_.Equal(t, "select * from table where id in (1,2)", sql)
 	go_test_.Equal(t, 0, len(params))
 
-	sql1, params1 := builder.MustBuildSelectSql(
-		`table`,
-		`*`,
-		map[string]interface{}{
-			"id": []string{},
+	sql1, params1, err := builder.buildSelectSql(
+		&SelectParams{
+			TableName: "table",
+			Select:    "*",
+			Where: map[string]interface{}{
+				"id": []string{},
+			},
 		},
 	)
+	go_test_.Equal(t, nil, err)
 	//go_test_.Equal(t, true, strings.HasPrefix(sql, "insert into table "))
 	//go_test_.Equal(t, 3, len(params))
 	fmt.Println(sql1, params1)
@@ -274,10 +289,12 @@ func TestMysqlClass_correctSelectStar(t *testing.T) {
 func Test_builderClass_BuildSelectSql1(t *testing.T) {
 	builder := &builderClass{}
 	sql, params, err := builder.buildSelectSql(
-		`table`,
-		`*`,
-		map[string]interface{}{
-			"symbol": strings.Split("", ","),
+		&SelectParams{
+			TableName: "table",
+			Select:    "*",
+			Where: map[string]interface{}{
+				"symbol": strings.Split("", ","),
+			},
 		},
 	)
 	go_test_.Equal(t, nil, err)
@@ -285,10 +302,12 @@ func Test_builderClass_BuildSelectSql1(t *testing.T) {
 	go_test_.Equal(t, 0, len(params))
 
 	sql1, params1, err1 := builder.buildSelectSql(
-		`table`,
-		`*`,
-		map[string]interface{}{
-			"symbol": strings.Split("test", ","),
+		&SelectParams{
+			TableName: "table",
+			Select:    "*",
+			Where: map[string]interface{}{
+				"symbol": strings.Split("test", ","),
+			},
 		},
 	)
 	go_test_.Equal(t, nil, err1)
@@ -314,4 +333,27 @@ func Test_builderClass_structToMap(t *testing.T) {
 	go_test_.Equal(t, nil, err)
 	go_test_.Equal(t, "aaaaa", result["a"])
 	go_test_.Equal(t, "bbbbb", result["b"])
+}
+
+func Test_builderClass_buildInsertSql(t *testing.T) {
+
+	datas := make([]*Test, 0)
+	datas = append(datas, &Test{
+		A: "a",
+		B: 2,
+	}, &Test{
+		A: "b",
+		B: 3,
+	})
+	mysql := &builderClass{}
+	sql, args, err := mysql.buildInsertSql(
+		"table",
+		datas,
+		buildInsertSqlOpt{},
+	)
+	go_test_.Equal(t, nil, err)
+	//fmt.Println(sql)
+	//fmt.Println(args)
+	go_test_.Equal(t, "INSERT INTO table (a,b) VALUES (?,?),(?,?)", sql)
+	go_test_.Equal(t, 4, len(args))
 }
