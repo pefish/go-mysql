@@ -19,8 +19,9 @@ type DbTime struct {
 
 type Test struct {
 	IdType
-	A string `json:"a"`
-	B uint64 `json:"b"`
+	A string  `json:"a"`
+	B uint64  `json:"b"`
+	C *string `json:"c,omitempty"`
 	DbTime
 }
 
@@ -80,14 +81,16 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 	}, buildInsertSqlOpt{})
 	//fmt.Println(sql1, params1)
 	go_test_.Equal(t, nil, err)
-	go_test_.Equal(t, true, strings.HasPrefix(sql1, "INSERT INTO table "))
+	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql1), "insert into table "))
 	go_test_.Equal(t, 9, len(params1))
 
+	tmpStr := "123"
 	sql2, params2, err := builder.buildInsertSql(`table`, []Test{
 		{
 			IdType: IdType{Id: 12},
 			B:      123,
 			A:      `hfhd`,
+			C:      &tmpStr,
 		},
 		{
 			B: 345,
@@ -95,9 +98,18 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 		},
 	}, buildInsertSqlOpt{})
 	go_test_.Equal(t, nil, err)
-	fmt.Println(sql2, params2)
-	go_test_.Equal(t, true, strings.HasPrefix(sql2, "INSERT INTO table "))
-	go_test_.Equal(t, 6, len(params2))
+	//fmt.Println(sql2, params2)
+	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql2), "insert into table "))
+	go_test_.Equal(t, 8, len(params2))
+
+	sql3, params3, err := builder.buildInsertSql(`table`, Test{
+		B: 345,
+		A: `aaa`,
+	}, buildInsertSqlOpt{})
+	go_test_.Equal(t, nil, err)
+	fmt.Println(sql3, params3)
+	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql3), "insert into table "))
+	go_test_.Equal(t, 2, len(params3))
 }
 
 func TestBuilderClass_BuildCountSql(t *testing.T) {
@@ -171,7 +183,7 @@ func TestBuilderClass_BuildInsertSql2(t *testing.T) {
 	sql, params, err := builder.buildInsertSql(`table`, test1, buildInsertSqlOpt{})
 	go_test_.Equal(t, nil, err)
 	fmt.Println(sql, params)
-	//go_test_.Equal(t, true, strings.HasPrefix(sql, "INSERT INTO table "))
+	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql), "insert into table "))
 	go_test_.Equal(t, 2, len(params))
 }
 
@@ -354,6 +366,6 @@ func Test_builderClass_buildInsertSql(t *testing.T) {
 	go_test_.Equal(t, nil, err)
 	//fmt.Println(sql)
 	//fmt.Println(args)
-	go_test_.Equal(t, "INSERT INTO table (a,b) VALUES (?,?),(?,?)", sql)
+	go_test_.Equal(t, "insert into table (a,b) values (?,?),(?,?)", strings.ToLower(sql))
 	go_test_.Equal(t, 4, len(args))
 }
