@@ -29,11 +29,9 @@ type IMysql interface {
 	MustRawExec(sql string, values ...interface{}) (uint64, uint64)
 	RawSelectByStr(dest interface{}, select_ string, str string, values ...interface{}) error
 	RawExec(sql string, values ...interface{}) (uint64, uint64, error)
-	MustCount(tableName string, args ...interface{}) uint64
-	Count(tableName string, args ...interface{}) (uint64, error)
-	RawCount(tableName string, args ...interface{}) (uint64, error)
-	MustSum(tableName string, sumTarget string, args ...interface{}) string
-	Sum(tableName string, sumTarget string, args ...interface{}) (string, error)
+	Count(countParams *CountParams, values ...interface{}) (uint64, error)
+	RawCount(sql string, values ...interface{}) (uint64, error)
+	Sum(sumParams *SumParams, values ...interface{}) (uint64, error)
 	MustSelectFirst(dest interface{}, selectParams *SelectParams, values ...interface{}) bool
 	SelectFirst(dest interface{}, selectParams *SelectParams, values ...interface{}) (bool, error)
 	MustSelectById(dest interface{}, tableName string, select_ string, id uint64) bool
@@ -307,22 +305,27 @@ func (mc *MysqlClass) rawSelect(
 	return nil
 }
 
-func (mc *MysqlClass) MustCount(tableName string, args ...interface{}) uint64 {
-	result, err := mc.Count(tableName, args...)
-	if err != nil {
-		panic(err)
-	}
-	return result
+type CountParams struct {
+	TableName string
+	Where     interface{}
 }
 
-func (mc *MysqlClass) Count(tableName string, args ...interface{}) (uint64, error) {
+func (mc *MysqlClass) Count(countParams *CountParams, values ...interface{}) (uint64, error) {
 	var countStruct struct {
 		Count uint64 `json:"count"`
 	}
-	sql, paramArgs, err := builder.buildCountSql(tableName, args...)
+
+	paramArgs, whereStr, err := builder.buildWhere(countParams.Where, values)
 	if err != nil {
 		return 0, err
 	}
+
+	sql := fmt.Sprintf(
+		`select count(*) as count from %s %s`,
+		countParams.TableName,
+		whereStr,
+	)
+
 	_, err = mc.rawSelectFirst(&countStruct, sql, paramArgs...)
 	if err != nil {
 		return 0, err
@@ -350,38 +353,40 @@ func (mc *MysqlClass) RawCount(sql string, values ...interface{}) (uint64, error
 	return countStruct.Count, nil
 }
 
-func (mc *MysqlClass) MustSum(
-	tableName string,
-	sumTarget string,
-	args ...interface{},
-) string {
-	result, err := mc.Sum(tableName, sumTarget, args...)
-	if err != nil {
-		panic(err)
-	}
-	return result
+type SumParams struct {
+	TableName string
+	SumTarget string
+	Where     interface{}
 }
 
 func (mc *MysqlClass) Sum(
-	tableName string,
-	sumTarget string,
-	args ...interface{},
-) (string, error) {
+	sumParams *SumParams,
+	values ...interface{},
+) (uint64, error) {
 	var sumStruct struct {
 		Sum *string `json:"sum"`
 	}
-	sql, paramArgs, err := builder.buildSumSql(tableName, sumTarget, args...)
+
+	paramArgs, whereStr, err := builder.buildWhere(sumParams.Where, values)
 	if err != nil {
-		return ``, err
+		return 0, err
 	}
+
+	sql := fmt.Sprintf(
+		`select sum(%s) as sum from %s %s`,
+		sumParams.SumTarget,
+		sumParams.TableName,
+		whereStr,
+	)
+
 	_, err = mc.rawSelectFirst(&sumStruct, sql, paramArgs...)
 	if err != nil {
-		return ``, err
+		return 0, err
 	}
 	if sumStruct.Sum == nil {
-		return `0`, nil
+		return 0, nil
 	}
-	return *sumStruct.Sum, nil
+	return go_format.FormatInstance.MustToUint64(*sumStruct.Sum), nil
 }
 
 func (mc *MysqlClass) MustSelectFirst(
@@ -732,45 +737,6 @@ func (mysql *builderClass) buildInsertSql(tableName string, params interface{}, 
 		}
 		str = strings.TrimSuffix(str, ",")
 	}
-	return str, paramArgs, nil
-}
-
-func (mysql *builderClass) buildCountSql(tableName string, args ...interface{}) (string, []interface{}, error) {
-	var whereStr = ``
-	paramArgs := make([]interface{}, 0)
-	if len(args) > 0 && args[0] != nil {
-		var err error
-		paramArgs, whereStr, err = mysql.buildWhere(args[0], args[1:])
-		if err != nil {
-			return ``, nil, err
-		}
-	}
-
-	str := fmt.Sprintf(
-		`select count(*) as count from %s %s`,
-		tableName,
-		whereStr,
-	)
-	return str, paramArgs, nil
-}
-
-func (mysql *builderClass) buildSumSql(tableName string, sumTarget string, args ...interface{}) (string, []interface{}, error) {
-	var whereStr = ``
-	paramArgs := make([]interface{}, 0)
-	if len(args) > 0 && args[0] != nil {
-		var err error
-		paramArgs, whereStr, err = mysql.buildWhere(args[0], args[1:])
-		if err != nil {
-			return ``, nil, err
-		}
-	}
-
-	str := fmt.Sprintf(
-		`select sum(%s) as sum from %s %s`,
-		sumTarget,
-		tableName,
-		whereStr,
-	)
 	return str, paramArgs, nil
 }
 

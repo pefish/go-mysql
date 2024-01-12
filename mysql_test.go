@@ -112,28 +112,6 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 	go_test_.Equal(t, 2, len(params3))
 }
 
-func TestBuilderClass_BuildCountSql(t *testing.T) {
-	builder := builderClass{}
-	sql, params, err := builder.buildCountSql(`table`, map[string]interface{}{
-		`a`: 123,
-		`c`: `hfhd`,
-	})
-	go_test_.Equal(t, nil, err)
-	go_test_.Equal(t, true, strings.HasPrefix(sql, "select count(*) as count from table where "))
-	go_test_.Equal(t, 2, len(params))
-}
-
-func TestBuilderClass_BuildSumSql(t *testing.T) {
-	builder := builderClass{}
-	sql, params, err := builder.buildSumSql(`table`, `aa`, map[string]interface{}{
-		`a`: 123,
-		`c`: `hfhd`,
-	})
-	go_test_.Equal(t, nil, err)
-	go_test_.Equal(t, true, strings.HasPrefix(sql, "select sum(aa) as sum from table where "))
-	go_test_.Equal(t, 2, len(params))
-}
-
 func TestBuilderClass_BuildWhere(t *testing.T) {
 	builder := builderClass{}
 	args, sql, err := builder.buildWhere(map[string]interface{}{
@@ -337,7 +315,7 @@ func Test_builderClass_structToMap(t *testing.T) {
 	}
 
 	mysql := &builderClass{}
-	result := make(map[string]interface{}, 0)
+	result := make(map[string]interface{})
 	err := mysql.structToMap(Test{
 		A:    "aaaaa",
 		Nest: Nest{B: "bbbbb"},
