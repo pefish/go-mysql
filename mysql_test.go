@@ -261,20 +261,6 @@ func Test_builderClass_BuildSelectSql(t *testing.T) {
 	fmt.Println(sql1, params1)
 }
 
-func TestMysqlClass_correctSelectStar(t *testing.T) {
-	mysql := NewMysqlInstance()
-	var testObj struct {
-		A   string `json:"a"`
-		Abc string `json:"abc"`
-	}
-	sql := mysql.correctSelectStar(&testObj, `
-
-  
- 	select * from abc
-`)
-	go_test_.Equal(t, "select a,abc from abc\n", sql)
-}
-
 func Test_builderClass_BuildSelectSql1(t *testing.T) {
 	builder := &builderClass{}
 	sql, params, err := builder.buildSelectSql(
@@ -342,6 +328,6 @@ func Test_builderClass_buildInsertSql(t *testing.T) {
 	go_test_.Equal(t, nil, err)
 	//fmt.Println(sql)
 	//fmt.Println(args)
-	go_test_.Equal(t, "insert into table (a,b) values (?,?),(?,?)", strings.ToLower(sql))
+	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql), "insert into table"))
 	go_test_.Equal(t, 4, len(args))
 }

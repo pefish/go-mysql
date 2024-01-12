@@ -24,7 +24,13 @@ type IMysql interface {
 
 	ConnectWithConfiguration(configuration Configuration) error
 
-	RawSelectByStr(
+	RawSelectFirst(
+		dest interface{},
+		select_ string,
+		str string,
+		values ...interface{},
+	) (bool, error)
+	RawSelect(
 		dest interface{},
 		select_ string,
 		str string,
@@ -175,7 +181,7 @@ func (mc *MysqlClass) printDebugInfo(sql string, values interface{}) {
 	mc.logger.DebugF(`%s%s, %v`, txInfo, sql, values)
 }
 
-func (mc *MysqlClass) RawSelectByStr(
+func (mc *MysqlClass) RawSelect(
 	dest interface{},
 	select_ string,
 	str string,
@@ -192,6 +198,21 @@ func (mc *MysqlClass) RawSelectByStr(
 		return err
 	}
 	return nil
+}
+
+func (mc *MysqlClass) RawSelectFirst(
+	dest interface{},
+	select_ string,
+	str string,
+	values ...interface{},
+) (bool, error) {
+	select_ = mc.replaceIfStar(dest, select_)
+	sql := fmt.Sprintf(
+		`select %s %s`,
+		select_,
+		str,
+	)
+	return mc.rawSelectFirst(dest, sql, values...)
 }
 
 func (mc *MysqlClass) processValues(sql string, values []interface{}) (string, []interface{}, error) {
@@ -248,15 +269,6 @@ func (mc *MysqlClass) RawExec(sql string, values ...interface{}) (uint64, uint64
 	return uint64(lastInsertId), uint64(rowsAffected), nil
 }
 
-func (mc *MysqlClass) correctSelectStar(dest interface{}, sql string) string {
-	sql = strings.TrimLeft(sql, " \n\t")
-	if strings.HasPrefix(sql, `select *`) {
-		return `select ` + mc.replaceIfStar(dest, "*") + sql[8:]
-	}
-
-	return sql
-}
-
 func (mc *MysqlClass) replaceIfStar(dest interface{}, str string) string {
 	if str == "*" {
 		tags := go_format.FormatInstance.GetValuesInTagFromStruct(dest, mc.tagName)
@@ -274,7 +286,6 @@ func (mc *MysqlClass) rawSelect(
 	sql string,
 	values ...interface{},
 ) error {
-	sql = mc.correctSelectStar(dest, sql)
 	sql, values, err := mc.processValues(sql, values)
 	mc.printDebugInfo(sql, values)
 	if err != nil {
@@ -471,7 +482,6 @@ func (mc *MysqlClass) Update(updateParams *UpdateParams, values ...interface{}) 
 }
 
 func (mc *MysqlClass) rawSelectFirst(dest interface{}, sql string, values ...interface{}) (bool, error) {
-	sql = mc.correctSelectStar(dest, sql)
 	sql, values, err := mc.processValues(sql, values)
 	mc.printDebugInfo(sql, values)
 	if err != nil {
