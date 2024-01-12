@@ -22,37 +22,32 @@ type IMysql interface {
 	SetLogger(logger go_logger.InterfaceLogger)
 	Close()
 
-	MustConnectWithConfiguration(configuration Configuration)
 	ConnectWithConfiguration(configuration Configuration) error
 
-	MustRawSelectByStr(dest interface{}, select_ string, str string, values ...interface{})
-	MustRawExec(sql string, values ...interface{}) (uint64, uint64)
-	RawSelectByStr(dest interface{}, select_ string, str string, values ...interface{}) error
+	RawSelectByStr(
+		dest interface{},
+		select_ string,
+		str string,
+		values ...interface{},
+	) error
 	RawExec(sql string, values ...interface{}) (uint64, uint64, error)
 	Count(countParams *CountParams, values ...interface{}) (uint64, error)
 	RawCount(sql string, values ...interface{}) (uint64, error)
 	Sum(sumParams *SumParams, values ...interface{}) (uint64, error)
-	MustSelectFirst(dest interface{}, selectParams *SelectParams, values ...interface{}) bool
 	SelectFirst(dest interface{}, selectParams *SelectParams, values ...interface{}) (bool, error)
-	MustSelectById(dest interface{}, tableName string, select_ string, id uint64) bool
-	SelectById(dest interface{}, tableName string, select_ string, id uint64) (notFound bool, err error)
-	MustSelect(dest interface{}, selectParams *SelectParams, values ...interface{})
+	SelectById(
+		dest interface{},
+		selectByIdParams *SelectByIdParams,
+	) (notFound bool, err error)
 	Select(dest interface{}, selectParams *SelectParams, values ...interface{}) error
-	MustInsert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64)
 	Insert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
-	MustInsertIgnore(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64)
-	InsertIgnore(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
-	InsertOnDuplicateKeyUpdate(tableName string, update map[string]interface{}, otherParams map[string]interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
-	MustReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64)
-	ReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
-	MustUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64)
-	Update(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64, err error)
+	Update(
+		updateParams *UpdateParams,
+		values ...interface{},
+	) (lastInsertId uint64, rowsAffected uint64, err error)
 
-	MustBegin() *MysqlClass
 	Begin() (*MysqlClass, error)
-	MustCommit()
 	Commit() error
-	MustRollback()
 	Rollback() error
 }
 
@@ -119,13 +114,6 @@ func (mc *MysqlClass) Close() {
 	}
 }
 
-func (mc *MysqlClass) MustConnectWithConfiguration(configuration Configuration) {
-	err := mc.ConnectWithConfiguration(configuration)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func (mc *MysqlClass) ConnectWithConfiguration(configuration Configuration) error {
 	var port = DEFAULT_PORT
 	if configuration.Port != 0 {
@@ -187,14 +175,12 @@ func (mc *MysqlClass) printDebugInfo(sql string, values interface{}) {
 	mc.logger.DebugF(`%s%s, %v`, txInfo, sql, values)
 }
 
-func (mc *MysqlClass) MustRawSelectByStr(dest interface{}, select_ string, str string, values ...interface{}) {
-	err := mc.RawSelectByStr(dest, select_, str, values...)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (mc *MysqlClass) RawSelectByStr(dest interface{}, select_ string, str string, values ...interface{}) error {
+func (mc *MysqlClass) RawSelectByStr(
+	dest interface{},
+	select_ string,
+	str string,
+	values ...interface{},
+) error {
 	select_ = mc.replaceIfStar(dest, select_)
 	sql := fmt.Sprintf(
 		`select %s %s`,
@@ -389,16 +375,12 @@ func (mc *MysqlClass) Sum(
 	return go_format.FormatInstance.MustToUint64(*sumStruct.Sum), nil
 }
 
-func (mc *MysqlClass) MustSelectFirst(
-	dest interface{},
-	selectParams *SelectParams,
-	values ...interface{},
-) bool {
-	bool_, err := mc.SelectFirst(dest, selectParams, values...)
-	if err != nil {
-		panic(err)
-	}
-	return bool_
+type SelectParams struct {
+	TableName string
+	Select    string
+	Where     interface{}
+	OrderBy   string
+	Limit     string
 }
 
 func (mc *MysqlClass) SelectFirst(
@@ -414,33 +396,24 @@ func (mc *MysqlClass) SelectFirst(
 	return mc.rawSelectFirst(dest, sql, paramArgs...)
 }
 
-func (mc *MysqlClass) MustSelectById(
-	dest interface{},
-	tableName string,
-	select_ string,
-	id uint64,
-) bool {
-	bool_, err := mc.SelectById(dest, tableName, select_, id)
-	if err != nil {
-		panic(err)
-	}
-	return bool_
+type SelectByIdParams struct {
+	TableName string
+	Select    string
+	Id        uint64
 }
 
 func (mc *MysqlClass) SelectById(
 	dest interface{},
-	tableName string,
-	select_ string,
-	id uint64,
+	selectByIdParams *SelectByIdParams,
 ) (notFound bool, err error) {
-	select_ = mc.replaceIfStar(dest, select_)
+	select_ := mc.replaceIfStar(dest, selectByIdParams.Select)
 	paramArgs := make([]interface{}, 0)
 	sql, paramArgs, err := builder.buildSelectSql(
 		&SelectParams{
-			TableName: tableName,
+			TableName: selectByIdParams.TableName,
 			Select:    select_,
 			Where: map[string]interface{}{
-				`id`: id,
+				`id`: selectByIdParams.Id,
 			},
 		},
 	)
@@ -448,25 +421,6 @@ func (mc *MysqlClass) SelectById(
 		return true, err
 	}
 	return mc.rawSelectFirst(dest, sql, paramArgs...)
-}
-
-func (mc *MysqlClass) MustSelect(
-	dest interface{},
-	selectParams *SelectParams,
-	values ...interface{},
-) {
-	err := mc.Select(dest, selectParams, values...)
-	if err != nil {
-		panic(err)
-	}
-}
-
-type SelectParams struct {
-	TableName string
-	Select    string
-	Where     interface{}
-	OrderBy   string
-	Limit     string
 }
 
 func (mc *MysqlClass) Select(
@@ -486,81 +440,29 @@ func (mc *MysqlClass) Select(
 	return nil
 }
 
-func (mc *MysqlClass) MustInsert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
-	lastInsertId, rowsAffected, err := mc.Insert(tableName, params)
-	if err != nil {
-		panic(err)
-	}
-	return lastInsertId, rowsAffected
-}
-
 func (mc *MysqlClass) Insert(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
-	sql, paramArgs, err := builder.buildInsertSql(tableName, params, buildInsertSqlOpt{})
+	sql, paramArgs, err := builder.buildInsertSql(tableName, params)
 	if err != nil {
 		return 0, 0, err
 	}
 	return mc.RawExec(sql, paramArgs...)
-}
-
-func (mc *MysqlClass) MustInsertIgnore(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
-	lastInsertId, rowsAffected, err := mc.InsertIgnore(tableName, params)
-	if err != nil {
-		panic(err)
-	}
-	return lastInsertId, rowsAffected
 }
 
 func (mc *MysqlClass) InsertIgnore(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
-	sql, paramArgs, err := builder.buildInsertSql(tableName, params, buildInsertSqlOpt{
-		InsertIgnore: true,
-	})
+	sql, paramArgs, err := builder.buildInsertSql(tableName, params)
 	if err != nil {
 		return 0, 0, err
 	}
 	return mc.RawExec(sql, paramArgs...)
 }
 
-func (mc *MysqlClass) InsertOnDuplicateKeyUpdate(tableName string, update map[string]interface{}, otherParams map[string]interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
-	for k, v := range update {
-		otherParams[k] = v
-	}
-	sql, paramArgs, err := builder.buildInsertSql(tableName, otherParams, buildInsertSqlOpt{
-		OnDuplicateKeyUpdate: update,
-	})
-	if err != nil {
-		return 0, 0, err
-	}
-	return mc.RawExec(sql, paramArgs...)
+type UpdateParams struct {
+	TableName string
+	Update    interface{}
 }
 
-func (mc *MysqlClass) MustReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64) {
-	lastInsertId, rowsAffected, err := mc.ReplaceInto(tableName, params)
-	if err != nil {
-		panic(err)
-	}
-	return lastInsertId, rowsAffected
-}
-
-func (mc *MysqlClass) ReplaceInto(tableName string, params interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
-	sql, paramArgs, err := builder.buildInsertSql(tableName, params, buildInsertSqlOpt{
-		ReplaceInto: true,
-	})
-	if err != nil {
-		return 0, 0, err
-	}
-	return mc.RawExec(sql, paramArgs...)
-}
-
-func (mc *MysqlClass) MustUpdate(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64) {
-	lastInsertId, rowsAffected, err := mc.Update(tableName, update, args...)
-	if err != nil {
-		panic(err)
-	}
-	return lastInsertId, rowsAffected
-}
-
-func (mc *MysqlClass) Update(tableName string, update interface{}, args ...interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
-	sql, paramArgs, err := builder.buildUpdateSql(tableName, update, args...)
+func (mc *MysqlClass) Update(updateParams *UpdateParams, values ...interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
+	sql, paramArgs, err := builder.buildUpdateSql(updateParams.TableName, updateParams.Update, values...)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -591,14 +493,6 @@ func (mc *MysqlClass) rawSelectFirst(dest interface{}, sql string, values ...int
 	return false, nil
 }
 
-func (mc *MysqlClass) MustBegin() *MysqlClass {
-	c, err := mc.Begin()
-	if err != nil {
-		panic(err)
-	}
-	return c
-}
-
 func (mc *MysqlClass) Begin() (*MysqlClass, error) {
 	id := fmt.Sprintf(`%s`, uuid.NewV4())
 	mc.printDebugInfo(`begin`, nil)
@@ -615,13 +509,6 @@ func (mc *MysqlClass) Begin() (*MysqlClass, error) {
 	}, nil
 }
 
-func (mc *MysqlClass) MustCommit() {
-	err := mc.Commit()
-	if err != nil {
-		panic(err)
-	}
-}
-
 func (mc *MysqlClass) Commit() error {
 	mc.printDebugInfo(`commit`, nil)
 
@@ -630,13 +517,6 @@ func (mc *MysqlClass) Commit() error {
 		return err
 	}
 	return nil
-}
-
-func (mc *MysqlClass) MustRollback() {
-	err := mc.Rollback()
-	if err != nil {
-		panic(err)
-	}
 }
 
 func (mc *MysqlClass) Rollback() error {
@@ -656,13 +536,7 @@ type builderClass struct {
 
 var builder = builderClass{}
 
-type buildInsertSqlOpt struct {
-	InsertIgnore         bool
-	ReplaceInto          bool
-	OnDuplicateKeyUpdate map[string]interface{}
-}
-
-func (mysql *builderClass) buildInsertSql(tableName string, params interface{}, opt buildInsertSqlOpt) (string, []interface{}, error) {
+func (mysql *builderClass) buildInsertSql(tableName string, params interface{}) (string, []interface{}, error) {
 	var cols []string
 	var vals []string
 	var paramArgs = make([]interface{}, 0)
@@ -714,11 +588,6 @@ func (mysql *builderClass) buildInsertSql(tableName string, params interface{}, 
 	}
 
 	insertStr := `insert`
-	if opt.InsertIgnore == true {
-		insertStr += ` ignore`
-	} else if opt.ReplaceInto == true {
-		insertStr = ` replace into`
-	}
 	str := fmt.Sprintf(
 		`%s into %s (%s) values (%s)`,
 		insertStr,
@@ -726,17 +595,6 @@ func (mysql *builderClass) buildInsertSql(tableName string, params interface{}, 
 		strings.Join(cols, `,`),
 		strings.Join(vals, `,`),
 	)
-	if opt.OnDuplicateKeyUpdate != nil {
-		str += " on duplicate key update "
-		for key, val := range opt.OnDuplicateKeyUpdate {
-			if val == nil {
-				continue
-			}
-			str += key + ` = ?,`
-			paramArgs = append(paramArgs, go_format.FormatInstance.ToString(val))
-		}
-		str = strings.TrimSuffix(str, ",")
-	}
 	return str, paramArgs, nil
 }
 
@@ -846,7 +704,7 @@ func (mysql *builderClass) buildWhere(where interface{}, args []interface{}) (pa
 			str = str[:len(str)-4]
 		}
 	case reflect.String:
-		return paramArgs, where.(string), nil
+		return paramArgs, "where " + where.(string), nil
 	default:
 		return nil, ``, errors.New(`Where type error.`)
 	}
@@ -870,10 +728,10 @@ func (mysql *builderClass) buildSelectSql(selectParams *SelectParams, values ...
 		whereStr,
 	)
 	if selectParams.OrderBy != "" {
-		str += fmt.Sprintf(" %s", selectParams.OrderBy)
+		str += fmt.Sprintf(" order by %s", selectParams.OrderBy)
 	}
 	if selectParams.Limit != "" {
-		str += fmt.Sprintf(" %s", selectParams.Limit)
+		str += fmt.Sprintf(" limit %s", selectParams.Limit)
 	}
 	return str, paramArgs, nil
 }
