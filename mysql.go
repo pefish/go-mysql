@@ -373,7 +373,7 @@ func (mc *MysqlClass) Sum(
 	}
 
 	sql := fmt.Sprintf(
-		`select sum(%s) as sum from %s %s`,
+		`select sum("%s") as sum from %s %s`,
 		sumParams.SumTarget,
 		sumParams.TableName,
 		whereStr,
