@@ -459,10 +459,11 @@ func (mc *MysqlClass) InsertIgnore(tableName string, params interface{}) (lastIn
 type UpdateParams struct {
 	TableName string
 	Update    interface{}
+	Where     interface{}
 }
 
 func (mc *MysqlClass) Update(updateParams *UpdateParams, values ...interface{}) (lastInsertId uint64, rowsAffected uint64, err error) {
-	sql, paramArgs, err := builder.buildUpdateSql(updateParams.TableName, updateParams.Update, values...)
+	sql, paramArgs, err := builder.buildUpdateSql(updateParams, values...)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -783,15 +784,15 @@ func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interf
 	return nil
 }
 
-func (mysql *builderClass) buildUpdateSql(tableName string, update interface{}, args ...interface{}) (string, []interface{}, error) {
+func (mysql *builderClass) buildUpdateSql(updateParams *UpdateParams, values ...interface{}) (string, []interface{}, error) {
 	var updateStr = ``
 	paramArgs := make([]interface{}, 0)
-	type_ := reflect.TypeOf(update)
+	type_ := reflect.TypeOf(updateParams.Update)
 	switch type_.Kind() {
 	case reflect.Map:
 		valKind := type_.Elem().Kind()
 		if valKind == reflect.Interface {
-			for key, val := range update.(map[string]interface{}) {
+			for key, val := range updateParams.Update.(map[string]interface{}) {
 				if val == nil {
 					continue
 				}
@@ -803,7 +804,7 @@ func (mysql *builderClass) buildUpdateSql(tableName string, update interface{}, 
 		}
 	case reflect.Struct:
 		map_ := make(map[string]interface{})
-		err := mysql.structToMap(update, map_)
+		err := mysql.structToMap(updateParams.Update, map_)
 		if err != nil {
 			return ``, nil, err
 		}
@@ -823,19 +824,15 @@ func (mysql *builderClass) buildUpdateSql(tableName string, update interface{}, 
 		updateStr = updateStr[:len(updateStr)-1]
 	}
 
-	var whereStr = ``
-	if len(args) > 0 && args[0] != nil {
-		paramArgsTemp, whereStrTemp, err := mysql.buildWhere(args[0], args[1:])
-		if err != nil {
-			return ``, nil, err
-		}
-		paramArgs = append(paramArgs, paramArgsTemp...)
-		whereStr = whereStrTemp
+	paramArgsTemp, whereStr, err := mysql.buildWhere(updateParams.Where, values)
+	if err != nil {
+		return ``, nil, err
 	}
+	paramArgs = append(paramArgs, paramArgsTemp...)
 
 	str := fmt.Sprintf(
 		`update %s set %s %s`,
-		tableName,
+		updateParams.TableName,
 		updateStr,
 		whereStr,
 	)

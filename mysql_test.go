@@ -27,26 +27,40 @@ type Test struct {
 
 func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 	builder := builderClass{}
-	sql, params, err := builder.buildUpdateSql(`table`, map[string]interface{}{
-		`a`: 123,
-		`c`: `hfhd`,
-	}, []map[string]interface{}{
-		{
-			`b`:    65,
-			`bghf`: `352352`,
+	sql, params, err := builder.buildUpdateSql(
+		&UpdateParams{
+			TableName: "table",
+			Update: map[string]interface{}{
+				`a`: 123,
+				`c`: `hfhd`,
+			},
+			Where: []map[string]interface{}{
+				{
+					`b`:    65,
+					`bghf`: `352352`,
+				},
+				{
+					`bnn`: `345`,
+				},
+			},
 		},
-		{
-			`bnn`: `345`,
-		},
-	})
+	)
 	go_test_.Equal(t, nil, err)
 	go_test_.Equal(t, true, strings.HasPrefix(sql, "update table set "))
 	go_test_.Equal(t, 5, len(params))
 
-	_, params1, err := builder.buildUpdateSql(`table`, map[string]interface{}{
-		`a`: 123,
-		`c`: `hfhd`,
-	}, `where b = ? and f = ?`, 23, 19)
+	_, params1, err := builder.buildUpdateSql(
+		&UpdateParams{
+			TableName: "table",
+			Update: map[string]interface{}{
+				`a`: 123,
+				`c`: `hfhd`,
+			},
+			Where: `where b = ? and f = ?`,
+		},
+		23,
+		19,
+	)
 	go_test_.Equal(t, nil, err)
 	//go_test_.Equal(t, "update table set a = ?,c = ? where b = ? and f = ?", sql1)
 	go_test_.Equal(t, 4, len(params1))
