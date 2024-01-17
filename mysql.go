@@ -81,9 +81,9 @@ var MysqlInstance IMysql = NewMysqlInstance()
 // ----------------------------- MysqlClass -----------------------------
 
 type MysqlClass struct {
-	Db      *sqlx.DB
-	TxId    string
-	Tx      *sqlx.Tx
+	db      *sqlx.DB
+	txId    string
+	tx      *sqlx.Tx
 	tagName string
 	logger  go_logger.InterfaceLogger
 }
@@ -104,16 +104,16 @@ func (mc *MysqlClass) SetLogger(logger go_logger.InterfaceLogger) {
 }
 
 func (mc *MysqlClass) Close() {
-	if mc.Db != nil {
-		err := mc.Db.Close()
+	if mc.db != nil {
+		err := mc.db.Close()
 		if err != nil {
 			mc.logger.Error(err)
 		} else {
 			mc.logger.Info(`mysql close succeed.`)
 		}
 	}
-	if mc.Tx != nil {
-		err := mc.Tx.Rollback()
+	if mc.tx != nil {
+		err := mc.tx.Rollback()
 		if err != nil {
 			mc.logger.Error(err)
 		}
@@ -168,15 +168,15 @@ func (mc *MysqlClass) ConnectWithConfiguration(configuration Configuration) erro
 	db.DB.SetMaxOpenConns(maxOpenConns)       // 用于设置最大打开的连接数，默认值为0表示不限制
 	db.DB.SetMaxIdleConns(maxIdleConns)       // 用于设置闲置的连接数
 	db.DB.SetConnMaxLifetime(connMaxLifetime) // 设置一个超时时间，时间小于数据库的超时时间即可
-	mc.Db = db
+	mc.db = db
 
 	return nil
 }
 
 func (mc *MysqlClass) printDebugInfo(sql string, values interface{}) {
 	txInfo := ``
-	if mc.Tx != nil {
-		txInfo = fmt.Sprintf(`[transaction id: %s] `, mc.TxId)
+	if mc.tx != nil {
+		txInfo = fmt.Sprintf(`[transaction id: %s] `, mc.txId)
 	}
 	mc.logger.DebugF(`%s%s, %v`, txInfo, sql, values)
 }
@@ -250,10 +250,10 @@ func (mc *MysqlClass) RawExec(sql string, values ...interface{}) (uint64, uint64
 	}
 
 	var result sql2.Result
-	if mc.Tx != nil {
-		result, err = mc.Tx.Exec(sql, values...)
+	if mc.tx != nil {
+		result, err = mc.tx.Exec(sql, values...)
 	} else {
-		result, err = mc.Db.Exec(sql, values...)
+		result, err = mc.db.Exec(sql, values...)
 	}
 	if err != nil {
 		return 0, 0, errors.WithStack(err)
@@ -291,10 +291,10 @@ func (mc *MysqlClass) rawSelect(
 	if err != nil {
 		return err
 	}
-	if mc.Tx != nil {
-		err = mc.Tx.Select(dest, sql, values...)
+	if mc.tx != nil {
+		err = mc.tx.Select(dest, sql, values...)
 	} else {
-		err = mc.Db.Select(dest, sql, values...)
+		err = mc.db.Select(dest, sql, values...)
 	}
 	if err != nil {
 		return errors.WithStack(err)
@@ -339,10 +339,10 @@ func (mc *MysqlClass) RawCount(sql string, values ...interface{}) (uint64, error
 	if err != nil {
 		return 0, err
 	}
-	if mc.Tx != nil {
-		err = mc.Tx.Select(&countStruct, sql, values...)
+	if mc.tx != nil {
+		err = mc.tx.Select(&countStruct, sql, values...)
 	} else {
-		err = mc.Db.Select(&countStruct, sql, values...)
+		err = mc.db.Select(&countStruct, sql, values...)
 	}
 	if err != nil {
 		return 0, errors.WithStack(err)
@@ -488,10 +488,10 @@ func (mc *MysqlClass) rawSelectFirst(dest interface{}, sql string, values ...int
 		return true, err
 	}
 
-	if mc.Tx != nil {
-		err = mc.Tx.Get(dest, sql, values...)
+	if mc.tx != nil {
+		err = mc.tx.Get(dest, sql, values...)
 	} else {
-		err = mc.Db.Get(dest, sql, values...)
+		err = mc.db.Get(dest, sql, values...)
 	}
 	if err != nil {
 		if err.Error() == `sql: no rows in result set` {
@@ -507,14 +507,14 @@ func (mc *MysqlClass) rawSelectFirst(dest interface{}, sql string, values ...int
 func (mc *MysqlClass) Begin() (*MysqlClass, error) {
 	id := fmt.Sprintf(`%s`, uuid.NewV4())
 	mc.printDebugInfo(`begin`, nil)
-	tx, err := mc.Db.Beginx()
+	tx, err := mc.db.Beginx()
 	if err != nil {
 		return nil, err
 	}
 	return &MysqlClass{
-		Db:      nil,
-		TxId:    id,
-		Tx:      tx,
+		db:      nil,
+		txId:    id,
+		tx:      tx,
 		tagName: mc.tagName,
 		logger:  mc.logger,
 	}, nil
@@ -523,7 +523,7 @@ func (mc *MysqlClass) Begin() (*MysqlClass, error) {
 func (mc *MysqlClass) Commit() error {
 	mc.printDebugInfo(`commit`, nil)
 
-	err := mc.Tx.Commit()
+	err := mc.tx.Commit()
 	if err != nil {
 		return err
 	}
@@ -533,7 +533,7 @@ func (mc *MysqlClass) Commit() error {
 func (mc *MysqlClass) Rollback() error {
 	mc.printDebugInfo(`rollback`, nil)
 
-	err := mc.Tx.Rollback()
+	err := mc.tx.Rollback()
 	if err != nil {
 		return err
 	}
