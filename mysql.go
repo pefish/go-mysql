@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Masterminds/squirrel"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pefish/go-logger"
 	"github.com/pefish/go-mysql/sqlx"
@@ -275,7 +274,7 @@ func (mc *MysqlClass) replaceIfStar(dest interface{}, str string) string {
 		if len(tags) == 0 {
 			return str
 		}
-		return strings.Join(tags, `,`)
+		return "`" + strings.Join(tags, "`,`") + "`"
 	}
 
 	return str
@@ -318,7 +317,7 @@ func (mc *MysqlClass) Count(countParams *CountParams, values ...interface{}) (ui
 	}
 
 	sql := fmt.Sprintf(
-		`select count(*) as count from %s %s`,
+		"select count(*) as count from `%s` %s",
 		countParams.TableName,
 		whereStr,
 	)
@@ -370,7 +369,7 @@ func (mc *MysqlClass) Sum(
 	}
 
 	sql := fmt.Sprintf(
-		`select sum("%s") as sum from %s %s`,
+		"select sum(`%s`) as sum from `%s` %s",
 		sumParams.SumTarget,
 		sumParams.TableName,
 		whereStr,
@@ -386,12 +385,24 @@ func (mc *MysqlClass) Sum(
 	return go_format.FormatInstance.MustToUint64(*sumStruct.Sum), nil
 }
 
+type OrderType string
+
+const (
+	OrderType_ASC  OrderType = "asc"
+	OrderType_DESC OrderType = "desc"
+)
+
+type OrderByType struct {
+	Col   string
+	Order OrderType
+}
+
 type SelectParams struct {
 	TableName string
 	Select    string
 	Where     interface{}
-	OrderBy   string
-	Limit     string
+	OrderBy   *OrderByType
+	Limit     uint64
 }
 
 func (mc *MysqlClass) SelectFirst(
@@ -547,63 +558,77 @@ type builderClass struct {
 
 var builder = builderClass{}
 
-func (mysql *builderClass) buildInsertSql(tableName string, params interface{}) (string, []interface{}, error) {
-	var cols []string
-	var vals []string
-	var paramArgs = make([]interface{}, 0)
+func (mysql *builderClass) buildInsertSql(tableName string, params interface{}) (sql string, paramArgs []interface{}, err error) {
+	cols := make([][]string, 0)
+	vals := make([]string, 0) // ["(?,?)","(?,?)"]
 	type_ := reflect.TypeOf(params)
-	switch type_.Kind() {
-	case reflect.Map:
-		valKind := type_.Elem().Kind()
-		if valKind == reflect.Interface {
-			cols, _, vals, paramArgs = mysql.buildFromMap(params.(map[string]interface{}))
-		} else {
-			return ``, nil, errors.New(`Map value type error.`)
-		}
-	case reflect.Struct:
+	var buildStructOrMap = func(params interface{}) (
+		cols []string,
+		mapVals []string,
+		paramArgs []interface{},
+		err error,
+	) {
 		map_ := make(map[string]interface{})
-		err := mysql.structToMap(params, map_)
+		err = mysql.structToMap(params, map_)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		for key, val := range map_ {
+			cols = append(cols, key)
+			mapVals = append(mapVals, "?")
+			paramArgs = append(paramArgs, go_format.FormatInstance.ToString(val))
+		}
+		return
+	}
+	switch type_.Kind() {
+	case reflect.Struct, reflect.Map:
+		cols_, mapVals, paramArgs_, err := buildStructOrMap(params)
 		if err != nil {
 			return ``, nil, err
 		}
-		cols, _, vals, paramArgs = mysql.buildFromMap(map_)
+		cols = append(cols, cols_)
+		paramArgs = append(paramArgs, paramArgs_...)
+		vals = append(vals, fmt.Sprintf("(%s)", strings.Join(mapVals, ",")))
 	case reflect.Slice:
+		// INSERT INTO table (a,b) VALUES (?,?),(?,?)
 		value_ := reflect.ValueOf(params)
 		if value_.Len() == 0 {
 			return "", nil, errors.New("Slice length cannot be 0.")
 		}
-		map_ := make(map[string]interface{})
-		err := mysql.structToMap(value_.Index(0).Interface(), map_)
-		if err != nil {
-			return ``, nil, err
-		}
-		for key, _ := range map_ {
-			cols = append(cols, key)
-		}
-		q := squirrel.Insert(tableName).Columns(cols...)
 		for i := 0; i < value_.Len(); i++ {
-			map_ := make(map[string]interface{})
-			err := mysql.structToMap(value_.Index(i).Interface(), map_)
+			cols_, mapVals, paramArgs_, err := buildStructOrMap(value_.Index(i).Interface())
 			if err != nil {
 				return ``, nil, err
 			}
-			vals := make([]interface{}, 0, 5)
-			for _, colName := range cols {
-				vals = append(vals, map_[colName])
+			newParamArgs_ := make([]interface{}, len(paramArgs_))
+			for i_, paramArg := range paramArgs_ {
+				newParamArgs_[i_] = paramArg
 			}
-			q = q.Values(vals...)
+			if len(cols) > 0 {
+				if len(cols_) != len(cols[len(cols)-1]) {
+					return ``, nil, errors.New("Slice length not match.")
+				}
+				// 对齐顺序
+				for i_, col := range cols[0] {
+					for j_, col_ := range cols_ {
+						if col == col_ {
+							newParamArgs_[i_] = paramArgs_[j_]
+						}
+					}
+				}
+			}
+			cols = append(cols, cols_)
+			paramArgs = append(paramArgs, newParamArgs_...)
+			vals = append(vals, fmt.Sprintf("(%s)", strings.Join(mapVals, ",")))
 		}
-		return q.ToSql()
 	default:
 		return ``, nil, errors.New(`Type error.`)
 	}
 
-	insertStr := `insert`
 	str := fmt.Sprintf(
-		`%s into %s (%s) values (%s)`,
-		insertStr,
+		"insert into `%s` (`%s`) values %s",
 		tableName,
-		strings.Join(cols, `,`),
+		strings.Join(cols[0], "`,`"),
 		strings.Join(vals, `,`),
 	)
 	return str, paramArgs, nil
@@ -614,7 +639,7 @@ func (mysql *builderClass) buildWhereFromMap(ele map[string]interface{}) ([]inte
 
 	andStr := ``
 	for i, col := range cols {
-		andStr = andStr + col + " " + ops[i] + " " + vals[i] + ` and `
+		andStr = andStr + fmt.Sprintf("`%s` %s %s and ", col, ops[i], vals[i])
 	}
 	if len(andStr) > 4 {
 		andStr = andStr[:len(andStr)-5]
@@ -733,16 +758,16 @@ func (mysql *builderClass) buildSelectSql(selectParams *SelectParams, values ...
 	}
 
 	str := fmt.Sprintf(
-		`select %s from %s %s`,
+		"select %s from `%s` %s",
 		selectParams.Select,
 		selectParams.TableName,
 		whereStr,
 	)
-	if selectParams.OrderBy != "" {
-		str += fmt.Sprintf(" order by %s", selectParams.OrderBy)
+	if selectParams.OrderBy != nil {
+		str += fmt.Sprintf(" order by `%s` %s", selectParams.OrderBy.Col, selectParams.OrderBy.Order)
 	}
-	if selectParams.Limit != "" {
-		str += fmt.Sprintf(" limit %s", selectParams.Limit)
+	if selectParams.Limit != 0 {
+		str += fmt.Sprintf(" limit %d", selectParams.Limit)
 	}
 	return str, paramArgs, nil
 }
@@ -841,7 +866,7 @@ func (mysql *builderClass) buildUpdateSql(updateParams *UpdateParams, values ...
 	paramArgs = append(paramArgs, paramArgsTemp...)
 
 	str := fmt.Sprintf(
-		`update %s set %s %s`,
+		"update `%s` set %s %s",
 		updateParams.TableName,
 		updateStr,
 		whereStr,
