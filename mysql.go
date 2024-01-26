@@ -3,6 +3,7 @@ package go_mysql
 import (
 	sql2 "database/sql"
 	"fmt"
+	"github.com/google/uuid"
 	go_format "github.com/pefish/go-format"
 	go_time "github.com/pefish/go-time"
 	"github.com/pkg/errors"
@@ -13,7 +14,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pefish/go-logger"
 	"github.com/pefish/go-mysql/sqlx"
-	uuid "github.com/satori/go.uuid"
 )
 
 type IMysql interface {
@@ -516,7 +516,7 @@ func (mc *MysqlClass) rawSelectFirst(dest interface{}, sql string, values ...int
 }
 
 func (mc *MysqlClass) Begin() (*MysqlClass, error) {
-	id := fmt.Sprintf(`%s`, uuid.NewV4())
+	id := fmt.Sprintf(`%s`, uuid.New().String())
 	mc.printDebugInfo(`begin`, nil)
 	tx, err := mc.db.Beginx()
 	if err != nil {

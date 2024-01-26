@@ -2,12 +2,12 @@ module github.com/pefish/go-mysql
 
 require (
 	github.com/go-sql-driver/mysql v1.7.1
+	github.com/google/uuid v1.6.0
 	github.com/pefish/go-format v0.3.0
 	github.com/pefish/go-logger v0.5.5
 	github.com/pefish/go-test v0.0.4
-	github.com/pefish/go-time v0.3.0
+	github.com/pefish/go-time v0.3.1
 	github.com/pkg/errors v0.9.1
-	github.com/satori/go.uuid v1.2.0
 )
 
 require (
