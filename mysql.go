@@ -38,7 +38,7 @@ type IMysql interface {
 	RawExec(sql string, values ...interface{}) (uint64, uint64, error)
 	Count(countParams *CountParams, values ...interface{}) (uint64, error)
 	RawCount(sql string, values ...interface{}) (uint64, error)
-	Sum(sumParams *SumParams, values ...interface{}) (uint64, error)
+	Sum(sumParams *SumParams, values ...interface{}) (float64, error)
 	SelectFirst(dest interface{}, selectParams *SelectParams, values ...interface{}) (bool, error)
 	SelectById(
 		dest interface{},
@@ -358,7 +358,7 @@ type SumParams struct {
 func (mc *MysqlClass) Sum(
 	sumParams *SumParams,
 	values ...interface{},
-) (uint64, error) {
+) (float64, error) {
 	var sumStruct struct {
 		Sum *string `json:"sum"`
 	}
@@ -382,7 +382,7 @@ func (mc *MysqlClass) Sum(
 	if sumStruct.Sum == nil {
 		return 0, nil
 	}
-	return go_format.FormatInstance.MustToUint64(*sumStruct.Sum), nil
+	return go_format.FormatInstance.MustToFloat64(*sumStruct.Sum), nil
 }
 
 type OrderType string
