@@ -186,12 +186,16 @@ func (mc *MysqlClass) RawSelect(
 	str string,
 	values ...interface{},
 ) error {
-	select_ = mc.replaceIfStar(dest, select_)
-	sql := fmt.Sprintf(
-		`select %s %s`,
-		select_,
-		str,
-	)
+	sql := str
+	if select_ != "" {
+		select_ = mc.replaceIfStar(dest, select_)
+		sql = fmt.Sprintf(
+			`select %s %s`,
+			select_,
+			str,
+		)
+	}
+
 	err := mc.rawSelect(dest, sql, values...)
 	if err != nil {
 		return err
@@ -205,12 +209,15 @@ func (mc *MysqlClass) RawSelectFirst(
 	str string,
 	values ...interface{},
 ) (bool, error) {
-	select_ = mc.replaceIfStar(dest, select_)
-	sql := fmt.Sprintf(
-		`select %s %s`,
-		select_,
-		str,
-	)
+	sql := str
+	if select_ != "" {
+		select_ = mc.replaceIfStar(dest, select_)
+		sql = fmt.Sprintf(
+			`select %s %s`,
+			select_,
+			str,
+		)
+	}
 	return mc.rawSelectFirst(dest, sql, values...)
 }
 
