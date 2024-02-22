@@ -3,16 +3,17 @@ package go_mysql
 import (
 	sql2 "database/sql"
 	"fmt"
-	"github.com/google/uuid"
-	go_format "github.com/pefish/go-format"
-	go_time "github.com/pefish/go-time"
-	"github.com/pkg/errors"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+	go_format "github.com/pefish/go-format"
+	go_time "github.com/pefish/go-time"
+	"github.com/pkg/errors"
+
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/pefish/go-logger"
+	go_logger "github.com/pefish/go-logger"
 	"github.com/pefish/go-mysql/sqlx"
 )
 
@@ -838,7 +839,7 @@ func (mysql *builderClass) buildUpdateSql(updateParams *UpdateParams, values ...
 				if val == nil {
 					continue
 				}
-				updateStr = updateStr + key + ` = ?,`
+				updateStr += fmt.Sprintf("`%s` = ?,", key)
 				paramArgs = append(paramArgs, go_format.FormatInstance.ToString(val))
 			}
 		} else {
@@ -854,7 +855,7 @@ func (mysql *builderClass) buildUpdateSql(updateParams *UpdateParams, values ...
 			if val == nil {
 				continue
 			}
-			updateStr = updateStr + key + ` = ?,`
+			updateStr += fmt.Sprintf("`%s` = ?,", key)
 			paramArgs = append(paramArgs, go_format.FormatInstance.ToString(val))
 		}
 	default:

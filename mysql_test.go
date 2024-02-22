@@ -46,6 +46,7 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 			},
 		},
 	)
+	fmt.Println(sql, params)
 	go_test_.Equal(t, nil, err)
 	go_test_.Equal(t, true, strings.HasPrefix(sql, "update `table` set "))
 	go_test_.Equal(t, 5, len(params))
