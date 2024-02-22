@@ -3,6 +3,7 @@ package sqlx
 import (
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -53,9 +54,9 @@ func mapper() *reflectx.Mapper {
 
 // isScannable takes the reflect.Type and the actual dest value and returns
 // whether or not it's Scannable.  Something is scannable if:
-//   * it is not a struct
-//   * it implements sql.Scanner
-//   * it has no exported fields
+//   - it is not a struct
+//   - it implements sql.Scanner
+//   - it has no exported fields
 func isScannable(t reflect.Type) bool {
 	if reflect.PtrTo(t).Implements(_scannerInterface) {
 		return true
@@ -885,9 +886,9 @@ func structOnlyError(t reflect.Type) error {
 // each row must only have one column which can scan into that type.  This
 // allows you to do something like:
 //
-//    rows, _ := db.Query("select id from people;")
-//    var ids []int
-//    scanAll(rows, &ids, false)
+//	rows, _ := db.Query("select id from people;")
+//	var ids []int
+//	scanAll(rows, &ids, false)
 //
 // and ids will be a list of the id results.  I realize that this is a desirable
 // interface to expose to users, but for now it will only be exposed via changes
@@ -965,6 +966,25 @@ func scanAll(rows rowsi, dest interface{}, structOnly bool) error {
 				return err
 			}
 
+			// Unmarshal map field in struct
+			for i, field := range fields {
+				if len(field) == 0 {
+					continue
+				}
+				f := reflectx.FieldByIndexes(v, field)
+				if f.Kind() != reflect.Map {
+					continue
+				}
+				str := *values[i].(*string)
+				m := make(map[string]interface{})
+				err = json.Unmarshal([]byte(str), &m)
+				if err != nil {
+					return err
+				}
+
+				v.FieldByIndex(fields[4]).Set(reflect.ValueOf(m))
+			}
+
 			if isPtr {
 				direct.Set(reflect.Append(direct, vp))
 			} else {
@@ -1032,11 +1052,16 @@ func fieldsByTraversal(v reflect.Value, traversals [][]int, values []interface{}
 			continue
 		}
 		f := reflectx.FieldByIndexes(v, traversal)
+		if f.Kind() == reflect.Map {
+			values[i] = new(string)
+			continue
+		}
 		if ptrs {
 			values[i] = f.Addr().Interface()
 		} else {
 			values[i] = f.Interface()
 		}
+
 	}
 	return nil
 }
