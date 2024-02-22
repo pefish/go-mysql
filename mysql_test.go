@@ -2,10 +2,11 @@ package go_mysql
 
 import (
 	"fmt"
-	"github.com/pefish/go-test"
 	"strings"
 	"testing"
 	"time"
+
+	go_test_ "github.com/pefish/go-test"
 )
 
 type IdType struct {
@@ -144,6 +145,20 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 	fmt.Println(sql4, params4)
 	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql4), "insert into `table` "))
 	go_test_.Equal(t, 2, len(params4))
+
+	type Test3 struct {
+		A map[string]interface{} `json:"a"`
+	}
+	test3 := Test3{
+		A: map[string]interface{}{
+			"test": "123",
+		},
+	}
+	sql5, params5, err := builder.buildInsertSql(`table`, test3)
+	go_test_.Equal(t, nil, err)
+	fmt.Println(sql5, params5)
+	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql5), "insert into `table` "))
+	go_test_.Equal(t, 1, len(params5))
 }
 
 func TestBuilderClass_BuildWhere(t *testing.T) {
