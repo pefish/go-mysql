@@ -29,28 +29,57 @@ type IMysql interface {
 		select_ string,
 		str string,
 		values ...interface{},
-	) (bool, error)
+	) (
+		notFound bool,
+		err error,
+	)
+
 	RawSelect(
 		dest interface{},
 		select_ string,
 		str string,
 		values ...interface{},
 	) error
-	RawExec(sql string, values ...interface{}) (uint64, error)
-	Count(countParams *CountParams, values ...interface{}) (uint64, error)
-	RawCount(sql string, values ...interface{}) (uint64, error)
-	Sum(sumParams *SumParams, values ...interface{}) (float64, error)
-	SelectFirst(dest interface{}, selectParams *SelectParams, values ...interface{}) (bool, error)
+
+	RawExec(sql string, values ...interface{}) (
+		lastInsertId uint64,
+		err error,
+	)
+	Count(countParams *CountParams, values ...interface{}) (
+		count uint64,
+		err error,
+	)
+	RawCount(sql string, values ...interface{}) (
+		count uint64,
+		err error,
+	)
+	Sum(sumParams *SumParams, values ...interface{}) (
+		sum float64,
+		err error,
+	)
+	SelectFirst(dest interface{}, selectParams *SelectParams, values ...interface{}) (
+		notFound bool,
+		err error,
+	)
 	SelectById(
 		dest interface{},
 		selectByIdParams *SelectByIdParams,
-	) (notFound bool, err error)
+	) (
+		notFound bool,
+		err error,
+	)
 	Select(dest interface{}, selectParams *SelectParams, values ...interface{}) error
-	Insert(tableName string, params interface{}) (lastInsertId uint64, err error)
+	Insert(tableName string, params interface{}) (
+		lastInsertId uint64,
+		err error,
+	)
 	Update(
 		updateParams *UpdateParams,
 		values ...interface{},
-	) (lastInsertId uint64, err error)
+	) (
+		lastInsertId uint64,
+		err error,
+	)
 
 	Begin() (*MysqlClass, error)
 	Commit() error
@@ -209,7 +238,10 @@ func (mc *MysqlClass) RawSelectFirst(
 	select_ string,
 	str string,
 	values ...interface{},
-) (bool, error) {
+) (
+	notFound bool,
+	err error,
+) {
 	sql := str
 	if select_ != "" {
 		select_ = mc.replaceIfStar(dest, select_)
@@ -249,8 +281,11 @@ func (mc *MysqlClass) MustRawExec(sql string, values ...interface{}) uint64 {
 	return lastInsertId
 }
 
-func (mc *MysqlClass) RawExec(sql string, values ...interface{}) (uint64, error) {
-	sql, values, err := mc.processValues(sql, values)
+func (mc *MysqlClass) RawExec(sql string, values ...interface{}) (
+	lastInsertId uint64,
+	err error,
+) {
+	sql, values, err = mc.processValues(sql, values)
 	mc.printDebugInfo(sql, values)
 	if err != nil {
 		return 0, err
@@ -265,7 +300,7 @@ func (mc *MysqlClass) RawExec(sql string, values ...interface{}) (uint64, error)
 	if err != nil {
 		return 0, errors.WithStack(err)
 	}
-	lastInsertId, err := result.LastInsertId()
+	lastInsertId_, err := result.LastInsertId()
 	if err != nil {
 		return 0, errors.WithStack(err)
 	}
@@ -276,7 +311,7 @@ func (mc *MysqlClass) RawExec(sql string, values ...interface{}) (uint64, error)
 	if rowsAffected == 0 {
 		return 0, errors.New("No affected rows.")
 	}
-	return uint64(lastInsertId), nil
+	return uint64(lastInsertId_), nil
 }
 
 func (mc *MysqlClass) replaceIfStar(dest interface{}, str string) string {
@@ -317,7 +352,10 @@ type CountParams struct {
 	Where     interface{}
 }
 
-func (mc *MysqlClass) Count(countParams *CountParams, values ...interface{}) (uint64, error) {
+func (mc *MysqlClass) Count(countParams *CountParams, values ...interface{}) (
+	count uint64,
+	err error,
+) {
 	var countStruct struct {
 		Count uint64 `json:"count"`
 	}
@@ -340,11 +378,14 @@ func (mc *MysqlClass) Count(countParams *CountParams, values ...interface{}) (ui
 	return countStruct.Count, nil
 }
 
-func (mc *MysqlClass) RawCount(sql string, values ...interface{}) (uint64, error) {
+func (mc *MysqlClass) RawCount(sql string, values ...interface{}) (
+	count uint64,
+	err error,
+) {
 	var countStruct struct {
 		Count uint64 `json:"count"`
 	}
-	sql, values, err := mc.processValues(sql, values)
+	sql, values, err = mc.processValues(sql, values)
 	mc.printDebugInfo(sql, values)
 	if err != nil {
 		return 0, err
@@ -369,7 +410,10 @@ type SumParams struct {
 func (mc *MysqlClass) Sum(
 	sumParams *SumParams,
 	values ...interface{},
-) (float64, error) {
+) (
+	sum float64,
+	err error,
+) {
 	var sumStruct struct {
 		Sum *string `json:"sum"`
 	}
@@ -420,7 +464,10 @@ func (mc *MysqlClass) SelectFirst(
 	dest interface{},
 	selectParams *SelectParams,
 	values ...interface{},
-) (bool, error) {
+) (
+	notFound bool,
+	err error,
+) {
 	selectParams.Select = mc.replaceIfStar(dest, selectParams.Select)
 	sql, paramArgs, err := builder.buildSelectSql(selectParams, values...)
 	if err != nil {
@@ -438,9 +485,11 @@ type SelectByIdParams struct {
 func (mc *MysqlClass) SelectById(
 	dest interface{},
 	selectByIdParams *SelectByIdParams,
-) (notFound bool, err error) {
+) (
+	notFound bool,
+	err error,
+) {
 	select_ := mc.replaceIfStar(dest, selectByIdParams.Select)
-	paramArgs := make([]interface{}, 0)
 	sql, paramArgs, err := builder.buildSelectSql(
 		&SelectParams{
 			TableName: selectByIdParams.TableName,
@@ -473,7 +522,10 @@ func (mc *MysqlClass) Select(
 	return nil
 }
 
-func (mc *MysqlClass) Insert(tableName string, params interface{}) (lastInsertId uint64, err error) {
+func (mc *MysqlClass) Insert(tableName string, params interface{}) (
+	lastInsertId uint64,
+	err error,
+) {
 	sql, paramArgs, err := builder.buildInsertSql(tableName, params)
 	if err != nil {
 		return 0, err
@@ -481,7 +533,10 @@ func (mc *MysqlClass) Insert(tableName string, params interface{}) (lastInsertId
 	return mc.RawExec(sql, paramArgs...)
 }
 
-func (mc *MysqlClass) InsertIgnore(tableName string, params interface{}) (lastInsertId uint64, err error) {
+func (mc *MysqlClass) InsertIgnore(tableName string, params interface{}) (
+	lastInsertId uint64,
+	err error,
+) {
 	sql, paramArgs, err := builder.buildInsertSql(tableName, params)
 	if err != nil {
 		return 0, err
@@ -495,7 +550,10 @@ type UpdateParams struct {
 	Where     interface{}
 }
 
-func (mc *MysqlClass) Update(updateParams *UpdateParams, values ...interface{}) (lastInsertId uint64, err error) {
+func (mc *MysqlClass) Update(updateParams *UpdateParams, values ...interface{}) (
+	lastInsertId uint64,
+	err error,
+) {
 	sql, paramArgs, err := builder.buildUpdateSql(updateParams, values...)
 	if err != nil {
 		return 0, err
@@ -503,8 +561,11 @@ func (mc *MysqlClass) Update(updateParams *UpdateParams, values ...interface{}) 
 	return mc.RawExec(sql, paramArgs...)
 }
 
-func (mc *MysqlClass) rawSelectFirst(dest interface{}, sql string, values ...interface{}) (bool, error) {
-	sql, values, err := mc.processValues(sql, values)
+func (mc *MysqlClass) rawSelectFirst(dest interface{}, sql string, values ...interface{}) (
+	notFound bool,
+	err error,
+) {
+	sql, values, err = mc.processValues(sql, values)
 	mc.printDebugInfo(sql, values)
 	if err != nil {
 		return true, err
@@ -527,7 +588,7 @@ func (mc *MysqlClass) rawSelectFirst(dest interface{}, sql string, values ...int
 }
 
 func (mc *MysqlClass) Begin() (*MysqlClass, error) {
-	id := fmt.Sprintf(`%s`, uuid.New().String())
+	id := uuid.New().String()
 	mc.printDebugInfo(`begin`, nil)
 	tx, err := mc.db.Beginx()
 	if err != nil {
@@ -569,7 +630,11 @@ type builderClass struct {
 
 var builder = builderClass{}
 
-func (mysql *builderClass) buildInsertSql(tableName string, params interface{}) (sql string, paramArgs []interface{}, err error) {
+func (mysql *builderClass) buildInsertSql(tableName string, params interface{}) (
+	sql string,
+	paramArgs []interface{},
+	err error,
+) {
 	cols := make([][]string, 0)
 	vals := make([]string, 0) // ["(?,?)","(?,?)"]
 	type_ := reflect.TypeOf(params)
@@ -612,9 +677,7 @@ func (mysql *builderClass) buildInsertSql(tableName string, params interface{}) 
 				return ``, nil, err
 			}
 			newParamArgs_ := make([]interface{}, len(paramArgs_))
-			for i_, paramArg := range paramArgs_ {
-				newParamArgs_[i_] = paramArg
-			}
+			copy(newParamArgs_, paramArgs_)
 			if len(cols) > 0 {
 				if len(cols_) != len(cols[len(cols)-1]) {
 					return ``, nil, errors.New("Slice length not match.")
@@ -645,10 +708,12 @@ func (mysql *builderClass) buildInsertSql(tableName string, params interface{}) 
 	return str, paramArgs, nil
 }
 
-func (mysql *builderClass) buildWhereFromMap(ele map[string]interface{}) ([]interface{}, string) {
+func (mysql *builderClass) buildWhereFromMap(ele map[string]interface{}) (
+	args []interface{},
+	andStr string,
+) {
 	cols, ops, vals, args := mysql.buildFromMap(ele)
 
-	andStr := ``
 	for i, col := range cols {
 		andStr = andStr + fmt.Sprintf("`%s` %s %s and ", col, ops[i], vals[i])
 	}
@@ -658,7 +723,12 @@ func (mysql *builderClass) buildWhereFromMap(ele map[string]interface{}) ([]inte
 	return args, andStr
 }
 
-func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (cols []string, ops, vals []string, args []interface{}) {
+func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (
+	cols []string,
+	ops,
+	vals []string,
+	args []interface{},
+) {
 	cols = make([]string, 0)
 	ops = make([]string, 0)
 	vals = make([]string, 0)
@@ -710,7 +780,11 @@ func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (cols []stri
 	return
 }
 
-func (mysql *builderClass) buildWhere(where interface{}, args []interface{}) (paramArgs []interface{}, whereSql string, err error) {
+func (mysql *builderClass) buildWhere(where interface{}, args []interface{}) (
+	paramArgs []interface{},
+	whereSql string,
+	err error,
+) {
 	if where == nil {
 		return make([]interface{}, 0), "", nil
 	}
@@ -762,7 +836,11 @@ func (mysql *builderClass) buildWhere(where interface{}, args []interface{}) (pa
 	return paramArgs, "", nil
 }
 
-func (mysql *builderClass) buildSelectSql(selectParams *SelectParams, values ...interface{}) (sql string, paramArgs []interface{}, err error) {
+func (mysql *builderClass) buildSelectSql(selectParams *SelectParams, values ...interface{}) (
+	sql string,
+	paramArgs []interface{},
+	err error,
+) {
 	paramArgs, whereStr, err := mysql.buildWhere(selectParams.Where, values)
 	if err != nil {
 		return ``, nil, err
@@ -830,7 +908,11 @@ func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interf
 	return nil
 }
 
-func (mysql *builderClass) buildUpdateSql(updateParams *UpdateParams, values ...interface{}) (string, []interface{}, error) {
+func (mysql *builderClass) buildUpdateSql(updateParams *UpdateParams, values ...interface{}) (
+	sql string,
+	args []interface{},
+	err error,
+) {
 	var updateStr = ``
 	paramArgs := make([]interface{}, 0)
 	type_ := reflect.TypeOf(updateParams.Update)
