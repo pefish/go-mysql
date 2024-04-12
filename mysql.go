@@ -107,6 +107,8 @@ var (
 
 var MysqlInstance IMysql = NewMysqlInstance()
 
+var ErrorNoAffectedRows error = errors.New("No affected rows.")
+
 // ----------------------------- MysqlClass -----------------------------
 
 type MysqlClass struct {
@@ -309,7 +311,7 @@ func (mc *MysqlClass) RawExec(sql string, values ...interface{}) (
 		return 0, errors.WithStack(err)
 	}
 	if rowsAffected == 0 {
-		return 0, errors.New("No affected rows.")
+		return 0, ErrorNoAffectedRows
 	}
 	return uint64(lastInsertId_), nil
 }

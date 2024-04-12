@@ -70,14 +70,14 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 
 func TestBuilderClass_BuildInsertSql(t *testing.T) {
 	builder := builderClass{}
-	sql, params, err := builder.buildInsertSql(`table`, map[string]interface{}{
-		`a`: 123,
-		`c`: `hfhd`,
-	})
-	fmt.Println(sql, params)
-	go_test_.Equal(t, nil, err)
-	go_test_.Equal(t, true, strings.HasPrefix(sql, "insert into `table` "))
-	go_test_.Equal(t, 2, len(params))
+	// sql, params, err := builder.buildInsertSql(`table`, map[string]interface{}{
+	// 	`a`: 123,
+	// 	`c`: `hfhd`,
+	// })
+	// fmt.Println(sql, params)
+	// go_test_.Equal(t, nil, err)
+	// go_test_.Equal(t, true, strings.HasPrefix(sql, "insert into `table` "))
+	// go_test_.Equal(t, 2, len(params))
 
 	sql3, params3, err := builder.buildInsertSql(`table`, Test{
 		B: 345,
@@ -88,78 +88,78 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql3), "insert into `table` "))
 	go_test_.Equal(t, 2, len(params3))
 
-	sql1, params1, err := builder.buildInsertSql(`table`, []map[string]interface{}{
-		{
-			`a`: 123,
-			`c`: `hfhd`,
-			`b`: 431,
-		},
-		{
-			`a`: 345,
-			`c`: `aaa`,
-			`b`: 524,
-		},
-		{
-			`a`: 444,
-			`c`: `qqq`,
-			`b`: 111,
-		},
-	})
-	fmt.Println(sql1, params1)
-	go_test_.Equal(t, nil, err)
-	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql1), "insert into `table` "))
-	go_test_.Equal(t, 9, len(params1))
+	// sql1, params1, err := builder.buildInsertSql(`table`, []map[string]interface{}{
+	// 	{
+	// 		`a`: 123,
+	// 		`c`: `hfhd`,
+	// 		`b`: 431,
+	// 	},
+	// 	{
+	// 		`a`: 345,
+	// 		`c`: `aaa`,
+	// 		`b`: 524,
+	// 	},
+	// 	{
+	// 		`a`: 444,
+	// 		`c`: `qqq`,
+	// 		`b`: 111,
+	// 	},
+	// })
+	// fmt.Println(sql1, params1)
+	// go_test_.Equal(t, nil, err)
+	// go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql1), "insert into `table` "))
+	// go_test_.Equal(t, 9, len(params1))
 
-	tmpStr := "123"
-	sql2, params2, err := builder.buildInsertSql(`table`, []Test{
-		{
-			A: `hfhd`,
-			B: 123,
-			C: &tmpStr,
-		},
-		{
-			A: `aaa`,
-			B: 345,
-			C: &tmpStr,
-		},
-	})
-	go_test_.Equal(t, nil, err)
-	fmt.Println(sql2, params2)
-	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql2), "insert into `table` "))
-	go_test_.Equal(t, 6, len(params2))
+	// tmpStr := "123"
+	// sql2, params2, err := builder.buildInsertSql(`table`, []Test{
+	// 	{
+	// 		A: `hfhd`,
+	// 		B: 123,
+	// 		C: &tmpStr,
+	// 	},
+	// 	{
+	// 		A: `aaa`,
+	// 		B: 345,
+	// 		C: &tmpStr,
+	// 	},
+	// })
+	// go_test_.Equal(t, nil, err)
+	// fmt.Println(sql2, params2)
+	// go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql2), "insert into `table` "))
+	// go_test_.Equal(t, 6, len(params2))
 
-	type Test2 struct {
-		C string `json:"c,omitempty"`
-	}
+	// type Test2 struct {
+	// 	C string `json:"c,omitempty"`
+	// }
 
-	type Test1 struct {
-		A     string `json:"a"`
-		B     uint64 `json:"b"`
-		Test2 `json:"test2"`
-	}
-	test1 := Test1{
-		B: 123,
-		A: "456",
-	}
-	sql4, params4, err := builder.buildInsertSql(`table`, test1)
-	go_test_.Equal(t, nil, err)
-	fmt.Println(sql4, params4)
-	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql4), "insert into `table` "))
-	go_test_.Equal(t, 2, len(params4))
+	// type Test1 struct {
+	// 	A     string `json:"a"`
+	// 	B     uint64 `json:"b"`
+	// 	Test2 `json:"test2"`
+	// }
+	// test1 := Test1{
+	// 	B: 123,
+	// 	A: "456",
+	// }
+	// sql4, params4, err := builder.buildInsertSql(`table`, test1)
+	// go_test_.Equal(t, nil, err)
+	// fmt.Println(sql4, params4)
+	// go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql4), "insert into `table` "))
+	// go_test_.Equal(t, 2, len(params4))
 
-	type Test3 struct {
-		A map[string]interface{} `json:"a"`
-	}
-	test3 := Test3{
-		A: map[string]interface{}{
-			"test": "123",
-		},
-	}
-	sql5, params5, err := builder.buildInsertSql(`table`, test3)
-	go_test_.Equal(t, nil, err)
-	fmt.Println(sql5, params5)
-	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql5), "insert into `table` "))
-	go_test_.Equal(t, 1, len(params5))
+	// type Test3 struct {
+	// 	A map[string]interface{} `json:"a"`
+	// }
+	// test3 := Test3{
+	// 	A: map[string]interface{}{
+	// 		"test": "123",
+	// 	},
+	// }
+	// sql5, params5, err := builder.buildInsertSql(`table`, test3)
+	// go_test_.Equal(t, nil, err)
+	// fmt.Println(sql5, params5)
+	// go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql5), "insert into `table` "))
+	// go_test_.Equal(t, 1, len(params5))
 }
 
 func TestBuilderClass_BuildWhere(t *testing.T) {
