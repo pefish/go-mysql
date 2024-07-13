@@ -982,7 +982,7 @@ func scanAll(rows rowsi, dest interface{}, structOnly bool) error {
 					return err
 				}
 
-				v.FieldByIndex(fields[4]).Set(reflect.ValueOf(m))
+				v.FieldByIndex(field).Set(reflect.ValueOf(m))
 			}
 
 			if isPtr {
