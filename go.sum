@@ -19,6 +19,8 @@ github.com/pefish/go-test v0.0.4/go.mod h1:z9DAQQyjfKx0dRTBSaJCOSMwyMjwNEHI+/CBw
 github.com/pefish/go-test-assert v0.0.2 h1:AuEJxG99DsFb9+qSUnSEWJDlTn0gf1PmGkKcOUAFAjw=
 github.com/pefish/go-time v0.3.2 h1:MpFPO2bt9trBQSpa1qBNZYvFVfFaeqE3dB4lAIGpUdk=
 github.com/pefish/go-time v0.3.2/go.mod h1:QO6RKtlUBbbOGEoJEZA/+vmQvfBdavAMP09ROZhTV0Q=
+github.com/pefish/go-time v0.3.3 h1:9hEatuz3X+h2hGKzxFYhxiMka3QJvPpbeuiWx7q5gUY=
+github.com/pefish/go-time v0.3.3/go.mod h1:QO6RKtlUBbbOGEoJEZA/+vmQvfBdavAMP09ROZhTV0Q=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

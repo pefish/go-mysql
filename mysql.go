@@ -917,6 +917,7 @@ func (mysql *builderClass) buildUpdateSql(updateParams *UpdateParams, values ...
 ) {
 	var updateStr = ``
 	paramArgs := make([]interface{}, 0)
+	remainValues := values
 	type_ := reflect.TypeOf(updateParams.Update)
 	switch type_.Kind() {
 	case reflect.Map:
@@ -932,6 +933,7 @@ func (mysql *builderClass) buildUpdateSql(updateParams *UpdateParams, values ...
 		} else {
 			return ``, nil, errors.New(`map value type error`)
 		}
+		updateStr = strings.TrimSuffix(updateStr, ",")
 	case reflect.Struct:
 		map_ := make(map[string]interface{})
 		err := mysql.structToMap(updateParams.Update, map_)
@@ -945,19 +947,19 @@ func (mysql *builderClass) buildUpdateSql(updateParams *UpdateParams, values ...
 			updateStr += fmt.Sprintf("`%s` = ?,", key)
 			paramArgs = append(paramArgs, go_format.FormatInstance.ToString(val))
 		}
+		updateStr = strings.TrimSuffix(updateStr, ",")
+	case reflect.String:
+		updateStr = updateParams.Update.(string)
 	default:
 		return ``, nil, errors.New(`Type error.`)
 
 	}
 
-	if len(updateStr) > 0 {
-		updateStr = updateStr[:len(updateStr)-1]
-	}
-
-	paramArgsTemp, whereStr, err := mysql.buildWhere(updateParams.Where, values)
+	paramArgsTemp, whereStr, err := mysql.buildWhere(updateParams.Where, remainValues)
 	if err != nil {
 		return ``, nil, err
 	}
+
 	paramArgs = append(paramArgs, paramArgsTemp...)
 
 	str := fmt.Sprintf(

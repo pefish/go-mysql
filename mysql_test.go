@@ -66,6 +66,21 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 	go_test_.Equal(t, nil, err)
 	//go_test_.Equal(t, "update table set a = ?,c = ? where b = ? and f = ?", sql1)
 	go_test_.Equal(t, 4, len(params1))
+
+	_, params2, err := builder.buildUpdateSql(
+		&UpdateParams{
+			TableName: "table",
+			Update:    "a = ?",
+			Where:     `b = ? and f = ?`,
+		},
+		11,
+		23,
+		19,
+	)
+	// fmt.Println(sql2, params2)
+	go_test_.Equal(t, nil, err)
+	// go_test_.Equal(t, "update table set a = ?,c = ? where b = ? and f = ?", sql2)
+	go_test_.Equal(t, 3, len(params2))
 }
 
 func TestBuilderClass_BuildInsertSql(t *testing.T) {
