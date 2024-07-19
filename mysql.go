@@ -176,7 +176,7 @@ func (mc *MysqlClass) ConnectWithConfiguration(configuration Configuration) erro
 	address := fmt.Sprintf(`%s:%d`, configuration.Host, port)
 	mc.logger.Info(fmt.Sprintf(`mysql connecting... url: %s`, address))
 
-	connParamsStr := "charset=utf8&parseTime=true&multiStatements=true&loc=UTC"
+	connParamsStr := "parseTime=true&multiStatements=true&loc=UTC"
 	if configuration.ConnParams != nil {
 		for k, v := range configuration.ConnParams {
 			connParamsStr += fmt.Sprintf("&%s=%s", k, v)
