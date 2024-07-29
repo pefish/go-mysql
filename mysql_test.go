@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	i_logger "github.com/pefish/go-interface/i-logger"
+	t_mysql "github.com/pefish/go-interface/t-mysql"
 	go_test_ "github.com/pefish/go-test"
 )
 
@@ -29,7 +31,7 @@ type Test struct {
 func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 	builder := builderClass{}
 	sql, params, err := builder.buildUpdateSql(
-		&UpdateParams{
+		&t_mysql.UpdateParams{
 			TableName: "table",
 			Update: map[string]interface{}{
 				`a`: 123,
@@ -52,7 +54,7 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 	go_test_.Equal(t, 5, len(params))
 
 	_, params1, err := builder.buildUpdateSql(
-		&UpdateParams{
+		&t_mysql.UpdateParams{
 			TableName: "table",
 			Update: map[string]interface{}{
 				`a`: 123,
@@ -68,7 +70,7 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 	go_test_.Equal(t, 4, len(params1))
 
 	_, params2, err := builder.buildUpdateSql(
-		&UpdateParams{
+		&t_mysql.UpdateParams{
 			TableName: "table",
 			Update:    "a = ?",
 			Where:     `b = ? and f = ?`,
@@ -251,7 +253,7 @@ func Test_builderClass_buildWhereFromMapInterface1(t *testing.T) {
 }
 
 func TestMysqlClass_processValues(t *testing.T) {
-	mysql := NewMysqlInstance()
+	mysql := NewMysqlInstance(&i_logger.DefaultLogger)
 	sql, params, err := mysql.processValues("select * from `test` where `a` in (?) and `b` = ?", []interface{}{
 		[]string{"123", "456"},
 		6345,
@@ -264,7 +266,7 @@ func TestMysqlClass_processValues(t *testing.T) {
 func Test_builderClass_BuildSelectSql(t *testing.T) {
 	builder := builderClass{}
 	sql, params, err := builder.buildSelectSql(
-		&SelectParams{
+		&t_mysql.SelectParams{
 			TableName: "table",
 			Select:    "*",
 			Where: map[string]interface{}{
@@ -277,7 +279,7 @@ func Test_builderClass_BuildSelectSql(t *testing.T) {
 	go_test_.Equal(t, 0, len(params))
 
 	sql1, params1, err := builder.buildSelectSql(
-		&SelectParams{
+		&t_mysql.SelectParams{
 			TableName: "table",
 			Select:    "*",
 			Where: map[string]interface{}{
@@ -294,7 +296,7 @@ func Test_builderClass_BuildSelectSql(t *testing.T) {
 func Test_builderClass_BuildSelectSql1(t *testing.T) {
 	builder := &builderClass{}
 	sql, params, err := builder.buildSelectSql(
-		&SelectParams{
+		&t_mysql.SelectParams{
 			TableName: "table",
 			Select:    "*",
 			Where: map[string]interface{}{
@@ -307,7 +309,7 @@ func Test_builderClass_BuildSelectSql1(t *testing.T) {
 	go_test_.Equal(t, 0, len(params))
 
 	sql1, params1, err1 := builder.buildSelectSql(
-		&SelectParams{
+		&t_mysql.SelectParams{
 			TableName: "table",
 			Select:    "*",
 			Where: map[string]interface{}{

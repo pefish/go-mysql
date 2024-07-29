@@ -5,7 +5,9 @@ import (
 	"log"
 	"time"
 
-	go_logger "github.com/pefish/go-logger"
+	i_logger "github.com/pefish/go-interface/i-logger"
+	i_mysql "github.com/pefish/go-interface/i-mysql"
+	t_mysql "github.com/pefish/go-interface/t-mysql"
 	go_mysql "github.com/pefish/go-mysql"
 )
 
@@ -37,8 +39,8 @@ func main() {
 }
 
 func do() error {
-	go_mysql.MysqlInstance.SetLogger(go_logger.Logger)
-	err := go_mysql.MysqlInstance.ConnectWithConfiguration(go_mysql.Configuration{
+	var mysqlInstance i_mysql.IMysql = go_mysql.NewMysqlInstance(&i_logger.DefaultLogger)
+	err := mysqlInstance.ConnectWithConfiguration(t_mysql.Configuration{
 		Host:     "",
 		Username: "",
 		Password: "",
@@ -52,13 +54,12 @@ func do() error {
 
 	err = go_mysql.MysqlInstance.Select(
 		&tasks,
-		&go_mysql.SelectParams{
+		&t_mysql.SelectParams{
 			TableName: "task",
 			Select:    "*",
 		},
 	)
 	if err != nil {
-		go_logger.Logger.Error(err)
 		return err
 	}
 
