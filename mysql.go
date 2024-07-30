@@ -38,8 +38,6 @@ type MysqlType struct {
 	logger  i_logger.ILogger
 }
 
-var MysqlInstance = NewMysqlInstance(&i_logger.DefaultLogger)
-
 func NewMysqlInstance(logger i_logger.ILogger) *MysqlType {
 	return &MysqlType{
 		tagName: `json`,

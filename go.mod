@@ -4,7 +4,7 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/google/uuid v1.6.0
 	github.com/pefish/go-format v0.3.2
-	github.com/pefish/go-interface v0.0.8
+	github.com/pefish/go-interface v0.0.11
 	github.com/pefish/go-test v0.0.4
 	github.com/pefish/go-time v0.3.3
 	github.com/pkg/errors v0.9.1
