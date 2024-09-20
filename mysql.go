@@ -233,7 +233,7 @@ func (mc *MysqlType) RawExec(sql string, values ...interface{}) (
 
 func (mc *MysqlType) replaceIfStar(dest interface{}, str string) string {
 	if str == "*" {
-		tags := go_format.FormatInstance.GetValuesInTagFromStruct(dest, mc.tagName)
+		tags := go_format.GetValuesInTagFromStruct(dest, mc.tagName)
 		if len(tags) == 0 {
 			return str
 		}
@@ -343,7 +343,7 @@ func (mc *MysqlType) Sum(
 	if sumStruct.Sum == nil {
 		return 0, nil
 	}
-	return go_format.FormatInstance.MustToFloat64(*sumStruct.Sum), nil
+	return go_format.MustToFloat64(*sumStruct.Sum), nil
 }
 
 func (mc *MysqlType) SelectFirst(
@@ -526,7 +526,7 @@ func (mysql *builderClass) buildInsertSql(tableName string, params interface{}) 
 		for key, val := range map_ {
 			cols = append(cols, key)
 			mapVals = append(mapVals, "?")
-			paramArgs = append(paramArgs, go_format.FormatInstance.ToString(val))
+			paramArgs = append(paramArgs, go_format.ToString(val))
 		}
 		return
 	}
@@ -621,7 +621,7 @@ func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (
 			args_ := make([]interface{}, 0)
 			vals_ := make([]string, 0)
 			for i := 0; i < value_.Len(); i++ {
-				str := go_format.FormatInstance.ToString(value_.Index(i).Interface())
+				str := go_format.ToString(value_.Index(i).Interface())
 				if str == "" {
 					continue
 				}
@@ -638,7 +638,7 @@ func (mysql *builderClass) buildFromMap(ele map[string]interface{}) (
 			args = append(args, args_...)
 		} else {
 			cols = append(cols, key)
-			str := go_format.FormatInstance.ToString(val)
+			str := go_format.ToString(val)
 			if strings.HasPrefix(str, `s:`) {
 				r := strings.Trim(str[2:], " ")
 				index := strings.Index(r, " ")
@@ -759,7 +759,7 @@ func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interf
 		jsonTag := fieldType.Tag.Get("json")
 		if jsonTag != "" {
 			jsonTags := strings.Split(jsonTag, ",")
-			if len(jsonTags) > 1 && jsonTags[1] == "omitempty" && go_format.FormatInstance.IsZeroValue(field) { // 如果标记了omitempty且是零值，则不映射到 map 中
+			if len(jsonTags) > 1 && jsonTags[1] == "omitempty" && go_format.IsZeroValue(field) { // 如果标记了omitempty且是零值，则不映射到 map 中
 				continue
 			}
 			key = jsonTags[0]
@@ -775,7 +775,7 @@ func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interf
 			}
 			continue
 		} else {
-			strValue = go_format.FormatInstance.ToString(field.Interface())
+			strValue = go_format.ToString(field.Interface())
 		}
 		result[key] = strValue
 	}
@@ -800,7 +800,7 @@ func (mysql *builderClass) buildUpdateSql(updateParams *t_mysql.UpdateParams, va
 					continue
 				}
 				updateStr += fmt.Sprintf("`%s` = ?,", key)
-				paramArgs = append(paramArgs, go_format.FormatInstance.ToString(val))
+				paramArgs = append(paramArgs, go_format.ToString(val))
 			}
 		} else {
 			return ``, nil, errors.New(`map value type error`)
@@ -817,7 +817,7 @@ func (mysql *builderClass) buildUpdateSql(updateParams *t_mysql.UpdateParams, va
 				continue
 			}
 			updateStr += fmt.Sprintf("`%s` = ?,", key)
-			paramArgs = append(paramArgs, go_format.FormatInstance.ToString(val))
+			paramArgs = append(paramArgs, go_format.ToString(val))
 		}
 		updateStr = strings.TrimSuffix(updateStr, ",")
 	case reflect.String:
