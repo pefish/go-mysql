@@ -531,7 +531,7 @@ func (mysql *builderClass) buildInsertSql(tableName string, params interface{}) 
 		return
 	}
 	switch type_.Kind() {
-	case reflect.Struct, reflect.Map:
+	case reflect.Struct, reflect.Map, reflect.Pointer:
 		cols_, mapVals, paramArgs_, err := buildStructOrMap(params)
 		if err != nil {
 			return ``, nil, err

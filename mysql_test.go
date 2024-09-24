@@ -362,4 +362,17 @@ func Test_builderClass_buildInsertSql(t *testing.T) {
 	//fmt.Println(args)
 	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql), "insert into `table`"))
 	go_test_.Equal(t, 4, len(args))
+
+	sql, args, err = mysql.buildInsertSql(
+		"table",
+		&Test{
+			A: "b",
+			B: 3,
+		},
+	)
+	go_test_.Equal(t, nil, err)
+	// fmt.Println(sql)
+	// fmt.Println(args)
+	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql), "insert into `table`"))
+	go_test_.Equal(t, 2, len(args))
 }
