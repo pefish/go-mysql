@@ -46,7 +46,7 @@ func do() error {
 		Host:     "",
 		Username: "",
 		Password: "",
-		Database: "",
+		Database: "1",
 	})
 	if err != nil {
 		return err
