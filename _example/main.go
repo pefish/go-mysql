@@ -22,11 +22,13 @@ type IdType struct {
 
 type Task struct {
 	IdType
-	Name     string                 `json:"name"`
-	Desc     string                 `json:"desc"`
-	Interval uint64                 `json:"interval"`
-	Data     map[string]interface{} `json:"data"`
-	Status   uint64                 `json:"status,omitempty"`
+	Name   string                 `json:"name"`
+	Chain  string                 `json:"chain"`
+	Params map[string]interface{} `json:"params"`
+	UserId uint64                 `json:"user_id"`
+	Status uint64                 `json:"status"`
+	Result map[string]interface{} `json:"result"`
+	TgInfo map[string]interface{} `json:"tg_info"`
 	DbTime
 }
 
@@ -44,7 +46,7 @@ func do() error {
 		Host:     "",
 		Username: "",
 		Password: "",
-		Database: "shadouzuo",
+		Database: "",
 	})
 	if err != nil {
 		return err
@@ -52,11 +54,16 @@ func do() error {
 
 	tasks := make([]Task, 0)
 
-	err = go_mysql.MysqlInstance.Select(
+	err = mysqlInstance.Select(
 		&tasks,
 		&t_mysql.SelectParams{
 			TableName: "task",
 			Select:    "*",
+			Where: map[string]interface{}{
+				"name":   tasks,
+				"status": 0,
+				"chain":  "BaseTestnet",
+			},
 		},
 	)
 	if err != nil {
@@ -64,7 +71,12 @@ func do() error {
 	}
 
 	for _, task := range tasks {
-		fmt.Printf("%s, %s, %#v\n", task.Name, task.Desc, task.Data)
+		fmt.Println(task.Name)
+		fmt.Println(task.Params)
+		fmt.Println(task.Result)
+		if task.Result == nil {
+			fmt.Println(11)
+		}
 	}
 
 	return nil

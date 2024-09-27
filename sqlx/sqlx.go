@@ -975,14 +975,19 @@ func scanAll(rows rowsi, dest interface{}, structOnly bool) error {
 				if f.Kind() != reflect.Map {
 					continue
 				}
-				str := *values[i].(*string)
-				m := make(map[string]interface{})
-				err = json.Unmarshal([]byte(str), &m)
-				if err != nil {
-					return err
+
+				str := *values[i].(**string)
+				if str == nil {
+					v.FieldByIndex(field).SetZero()
+				} else {
+					m := make(map[string]interface{})
+					err = json.Unmarshal([]byte(*str), &m)
+					if err != nil {
+						return err
+					}
+					v.FieldByIndex(field).Set(reflect.ValueOf(m))
 				}
 
-				v.FieldByIndex(field).Set(reflect.ValueOf(m))
 			}
 
 			if isPtr {
@@ -1053,7 +1058,7 @@ func fieldsByTraversal(v reflect.Value, traversals [][]int, values []interface{}
 		}
 		f := reflectx.FieldByIndexes(v, traversal)
 		if f.Kind() == reflect.Map {
-			values[i] = new(string)
+			values[i] = new(*string)
 			continue
 		}
 		if ptrs {
