@@ -767,7 +767,7 @@ func (mysql *builderClass) structToMap(in_ interface{}, result map[string]interf
 
 		strValue := ""
 		if fieldType.Type.String() == "time.Time" {
-			strValue = go_time.TimeInstance.TimeToStr(field.Interface().(time.Time), "0000-00-00 00:00:00")
+			strValue = go_time.TimeToStr(field.Interface().(time.Time), "0000-00-00 00:00:00")
 		} else if field.Kind() == reflect.Struct {
 			err := mysql.structToMap(field.Interface(), result)
 			if err != nil {
