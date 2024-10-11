@@ -20,15 +20,22 @@ type IdType struct {
 	Id uint64 `json:"id,omitempty"`
 }
 
-type Task struct {
+type Record struct {
+	TokenAmount float64 `json:"token_amount"`
+	Type        string  `json:"type"`
+	Amount      float64 `json:"amount"`
+}
+
+type NewPairPos struct {
 	IdType
-	Name   string                 `json:"name"`
-	Chain  string                 `json:"chain"`
-	Params map[string]interface{} `json:"params"`
-	UserId uint64                 `json:"user_id"`
-	Status uint64                 `json:"status"`
-	Result map[string]interface{} `json:"result"`
-	TgInfo map[string]interface{} `json:"tg_info"`
+	UserId             uint64    `json:"user_id"`
+	NewPairId          uint64    `json:"new_pair_id"`
+	InitAmount         float64   `json:"init_amount"`
+	InitTokenAmount    float64   `json:"init_token_amount"`
+	CurrentTokenAmount float64   `json:"current_token_amount"`
+	InitTimestamp      uint64    `json:"init_timestamp"`
+	Status             uint64    `json:"status"`
+	Records            []*Record `json:"records"` // *Record, map[string]interface{}, []Record, []map[string]interface{}, []*Record
 	DbTime
 }
 
@@ -43,27 +50,22 @@ func main() {
 func do() error {
 	var mysqlInstance i_mysql.IMysql = go_mysql.NewMysqlInstance(&i_logger.DefaultLogger)
 	err := mysqlInstance.ConnectWithConfiguration(t_mysql.Configuration{
-		Host:     "",
-		Username: "",
-		Password: "",
-		Database: "1",
+		Host:     "52.68.233.193",
+		Username: "pefish_me",
+		Password: "brt245g7rfbgwrtgw8",
+		Database: "pefish_me",
 	})
 	if err != nil {
 		return err
 	}
 
-	tasks := make([]Task, 0)
+	tasks := make([]NewPairPos, 0)
 
 	err = mysqlInstance.Select(
 		&tasks,
 		&t_mysql.SelectParams{
-			TableName: "task",
+			TableName: "new_pair_pos",
 			Select:    "*",
-			Where: map[string]interface{}{
-				"name":   tasks,
-				"status": 0,
-				"chain":  "BaseTestnet",
-			},
 		},
 	)
 	if err != nil {
@@ -71,12 +73,10 @@ func do() error {
 	}
 
 	for _, task := range tasks {
-		fmt.Println(task.Name)
-		fmt.Println(task.Params)
-		fmt.Println(task.Result)
-		if task.Result == nil {
-			fmt.Println(11)
-		}
+		fmt.Println(task.Records)
+		// for _, record := range task.Records {
+		// 	fmt.Println(record.Amount)
+		// }
 	}
 
 	return nil

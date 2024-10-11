@@ -4,8 +4,9 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"fmt"
+
+	"github.com/pkg/errors"
 
 	"io/ioutil"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/pefish/go-mysql/sqlx/reflectx"
 )
 
@@ -972,20 +974,40 @@ func scanAll(rows rowsi, dest interface{}, structOnly bool) error {
 					continue
 				}
 				f := reflectx.FieldByIndexes(v, field)
-				if f.Kind() != reflect.Map {
-					continue
-				}
+				switch f.Kind() {
+				case reflect.Map, reflect.Slice, reflect.Pointer:
+					str := *values[i].(**string)
+					if str == nil {
+						v.FieldByIndex(field).SetZero()
+					} else {
+						var m interface{}
+						err = json.Unmarshal([]byte(*str), &m)
+						if err != nil {
+							return err
+						}
+						if reflect.TypeOf(m).Kind() == reflect.Slice && reflect.TypeOf(m).Kind() != f.Kind() {
+							return errors.Errorf("Type <%s> of db value not match on column index <%d>. expect type <%s>.", reflect.TypeOf(m).Kind(), field[0], f.Kind())
+						}
 
-				str := *values[i].(**string)
-				if str == nil {
-					v.FieldByIndex(field).SetZero()
-				} else {
-					m := make(map[string]interface{})
-					err = json.Unmarshal([]byte(*str), &m)
-					if err != nil {
-						return err
+						value := f.Interface()
+						decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+							WeaklyTypedInput: true,
+							TagName:          "json",
+							Result:           &value,
+						})
+						if err != nil {
+							return err
+						}
+
+						err = decoder.Decode(m)
+						if err != nil {
+							return err
+						}
+
+						v.FieldByIndex(field).Set(reflect.ValueOf(value))
 					}
-					v.FieldByIndex(field).Set(reflect.ValueOf(m))
+				default:
+					continue
 				}
 
 			}
@@ -1057,7 +1079,8 @@ func fieldsByTraversal(v reflect.Value, traversals [][]int, values []interface{}
 			continue
 		}
 		f := reflectx.FieldByIndexes(v, traversal)
-		if f.Kind() == reflect.Map {
+		switch f.Kind() {
+		case reflect.Map, reflect.Slice, reflect.Pointer:
 			values[i] = new(*string)
 			continue
 		}

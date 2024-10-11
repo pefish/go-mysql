@@ -124,7 +124,7 @@ func (mc *MysqlType) printDebugInfo(sql string, values interface{}) {
 	if mc.tx != nil {
 		txInfo = fmt.Sprintf(`[transaction id: %s] `, mc.txId)
 	}
-	mc.logger.DebugF(`%s%s, %v`, txInfo, sql, values)
+	mc.logger.DebugF("%s%s, %v\n", txInfo, sql, values)
 }
 
 func (mc *MysqlType) RawSelect(
@@ -233,7 +233,7 @@ func (mc *MysqlType) RawExec(sql string, values ...interface{}) (
 
 func (mc *MysqlType) replaceIfStar(dest interface{}, str string) string {
 	if str == "*" {
-		tags := go_format.GetValuesInTagFromStruct(dest, mc.tagName)
+		tags := go_format.FetchTags(dest, mc.tagName)
 		if len(tags) == 0 {
 			return str
 		}
