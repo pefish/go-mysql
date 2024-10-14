@@ -975,6 +975,8 @@ func scanAll(rows rowsi, dest interface{}, structOnly bool) error {
 				}
 				f := reflectx.FieldByIndexes(v, field)
 				switch f.Kind() {
+				case reflect.Float32, reflect.Float64:
+					return errors.Errorf("Type <%s> on column index <%d> is not allowed to use.", f.Kind(), field[0])
 				case reflect.Map, reflect.Slice, reflect.Pointer:
 					str := *values[i].(**string)
 					if str == nil {
