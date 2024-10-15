@@ -974,10 +974,14 @@ func scanAll(rows rowsi, dest interface{}, structOnly bool) error {
 					continue
 				}
 				f := reflectx.FieldByIndexes(v, field)
-				switch f.Kind() {
-				case reflect.Float32, reflect.Float64:
+
+				if f.Kind() == reflect.Float32 || f.Kind() == reflect.Float64 {
 					return errors.Errorf("Type <%s> on column index <%d> is not allowed to use.", f.Kind(), field[0])
-				case reflect.Map, reflect.Slice, reflect.Pointer:
+				}
+
+				if f.Kind() == reflect.Map ||
+					f.Kind() == reflect.Slice ||
+					(f.Kind() == reflect.Pointer && f.Elem().Kind() == reflect.Struct) {
 					str := *values[i].(**string)
 					if str == nil {
 						v.FieldByIndex(field).SetZero()
@@ -1013,10 +1017,8 @@ func scanAll(rows rowsi, dest interface{}, structOnly bool) error {
 					}
 
 					v.FieldByIndex(field).Set(reflect.ValueOf(value))
-				default:
 					continue
 				}
-
 			}
 
 			if isPtr {
@@ -1086,8 +1088,9 @@ func fieldsByTraversal(v reflect.Value, traversals [][]int, values []interface{}
 			continue
 		}
 		f := reflectx.FieldByIndexes(v, traversal)
-		switch f.Kind() {
-		case reflect.Map, reflect.Slice, reflect.Pointer:
+		if f.Kind() == reflect.Map ||
+			f.Kind() == reflect.Slice ||
+			(f.Kind() == reflect.Pointer && f.Elem().Kind() == reflect.Struct) {
 			values[i] = new(*string)
 			continue
 		}
