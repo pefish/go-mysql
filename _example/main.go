@@ -38,6 +38,23 @@ type NewPairPos struct {
 	DbTime
 }
 
+type NewPair struct {
+	IdType
+	Chain               string  `json:"chain"`
+	TokenAddress        string  `json:"token_address"`
+	TokenDecimals       uint64  `json:"token_decimals"`
+	Token0IsWETH        uint64  `json:"token0_is_weth"`
+	TokenSymbol         string  `json:"token_symbol"`
+	PairAddress         string  `json:"pair_address"`
+	PairSymbol          string  `json:"pair_symbol"`
+	TradeStartTimestamp uint64  `json:"trade_start_timestamp"`
+	InitialEthInPool    string  `json:"initial_eth_in_pool"`
+	InitialTokenInPool  string  `json:"initial_token_in_pool"`
+	Mark                *string `json:"mark,omitempty"`
+	Status              uint64  `json:"status"`
+	DbTime
+}
+
 func main() {
 	err := do()
 	if err != nil {
@@ -49,7 +66,7 @@ func main() {
 func do() error {
 	var mysqlInstance i_mysql.IMysql = go_mysql.NewMysqlInstance(&i_logger.DefaultLogger)
 	err := mysqlInstance.ConnectWithConfiguration(t_mysql.Configuration{
-		Host:     "",
+		Host:     "52.68.233.193",
 		Username: "pefish_me",
 		Password: "",
 		Database: "pefish_me",
@@ -58,21 +75,21 @@ func do() error {
 		return err
 	}
 
-	tasks := make([]NewPairPos, 0)
-
+	newPairs := make([]NewPair, 0)
 	err = mysqlInstance.Select(
-		&tasks,
+		&newPairs,
 		&t_mysql.SelectParams{
-			TableName: "new_pair_pos",
+			TableName: "new_pair",
 			Select:    "*",
+			Where:     "status = 0",
 		},
 	)
 	if err != nil {
 		return err
 	}
 
-	for _, task := range tasks {
-		fmt.Println(task.Records)
+	for _, newPair := range newPairs {
+		fmt.Println(*newPair.Mark)
 		// for _, record := range task.Records {
 		// 	fmt.Println(record.Amount)
 		// }
