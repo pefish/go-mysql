@@ -5,10 +5,10 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
 
-	"io/ioutil"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -596,48 +596,6 @@ func (r *Rows) MapScan(dest map[string]interface{}) error {
 	return MapScan(r, dest)
 }
 
-// StructScan is like sql.Rows.Scan, but scans a single Row into a single Struct.
-// Use this and iterate over Rows manually when the memory load of Select() might be
-// prohibitive.  *Rows.StructScan caches the reflect work of matching up column
-// positions to fields to avoid that overhead per scan, which means it is not safe
-// to run StructScan on the same Rows instance with different struct types.
-func (r *Rows) StructScan(dest interface{}) error {
-	v := reflect.ValueOf(dest)
-
-	if v.Kind() != reflect.Ptr {
-		return errors.New("must pass a pointer, not a value, to StructScan destination")
-	}
-
-	v = v.Elem()
-
-	if !r.started {
-		columns, err := r.Columns()
-		if err != nil {
-			return err
-		}
-		m := r.Mapper
-
-		r.fields = m.TraversalsByName(v.Type(), columns)
-		// if we are not unsafe and are missing fields, return an error
-		if f, err := missingFields(r.fields); err != nil && !r.unsafe {
-			return fmt.Errorf("missing destination name %s in %T", columns[f], dest)
-		}
-		r.values = make([]interface{}, len(columns))
-		r.started = true
-	}
-
-	err := fieldsByTraversal(v, r.fields, r.values, true)
-	if err != nil {
-		return err
-	}
-	// scan into the struct field pointers and append to our results
-	err = r.Scan(r.values...)
-	if err != nil {
-		return err
-	}
-	return r.Err()
-}
-
 // Connect to a database and verify with a ping.
 func Connect(driverName, dataSourceName string) (*DB, error) {
 	db, err := Open(driverName, dataSourceName)
@@ -711,7 +669,7 @@ func LoadFile(e Execer, path string) (*sql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	contents, err := ioutil.ReadFile(realpath)
+	contents, err := os.ReadFile(realpath)
 	if err != nil {
 		return nil, err
 	}
@@ -791,7 +749,16 @@ func (r *Row) scanAny(dest interface{}, structOnly bool) error {
 		return err
 	}
 	// scan into the struct field pointers and append to our results
-	return r.Scan(values...)
+	err = r.Scan(values...)
+	if err != nil {
+		return err
+	}
+	err = unmarshalFields(v, fields, values)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // StructScan a single Row into dest.
@@ -882,6 +849,68 @@ func structOnlyError(t reflect.Type) error {
 	return fmt.Errorf("expected a struct, but struct %s has no exported fields", t.Name())
 }
 
+func unmarshalFields(
+	v reflect.Value,
+	fields [][]int,
+	values []interface{},
+) error {
+	v = reflect.Indirect(v)
+	// Unmarshal map field in struct
+	for i, field := range fields {
+		if len(field) == 0 {
+			continue
+		}
+		f := reflectx.FieldByIndexes(v, field)
+
+		if f.Kind() == reflect.Float32 || f.Kind() == reflect.Float64 {
+			return errors.Errorf("Type <%s> on column index <%d> is not allowed to use.", f.Kind(), field[0])
+		}
+
+		if f.Kind() == reflect.Map ||
+			f.Kind() == reflect.Slice ||
+			(f.Kind() == reflect.Pointer && f.Elem().Kind() == reflect.Struct) {
+			str := *values[i].(**string)
+			if str == nil {
+				v.FieldByIndex(field).SetZero()
+				continue
+			}
+			var m interface{}
+			err := json.Unmarshal([]byte(*str), &m)
+			if err != nil {
+				return err
+			}
+
+			if m == nil {
+				v.FieldByIndex(field).SetZero()
+				continue
+			}
+			if reflect.TypeOf(m).Kind() == reflect.Slice && reflect.TypeOf(m).Kind() != f.Kind() {
+				return errors.Errorf("Type <%s> of db value not match on column index <%d>. expect type <%s>.", reflect.TypeOf(m).Kind(), field[0], f.Kind())
+			}
+
+			value := f.Interface()
+			decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+				WeaklyTypedInput: true,
+				TagName:          "json",
+				Result:           &value,
+			})
+			if err != nil {
+				return err
+			}
+
+			err = decoder.Decode(m)
+			if err != nil {
+				return err
+			}
+
+			v.FieldByIndex(field).Set(reflect.ValueOf(value))
+			continue
+		}
+	}
+
+	return nil
+}
+
 // scanAll scans all rows into a destination, which must be a slice of any
 // type.  If the destination slice type is a Struct, then StructScan will be
 // used on each row.  If the destination is some other kind of base type, then
@@ -968,57 +997,9 @@ func scanAll(rows rowsi, dest interface{}, structOnly bool) error {
 				return err
 			}
 
-			// Unmarshal map field in struct
-			for i, field := range fields {
-				if len(field) == 0 {
-					continue
-				}
-				f := reflectx.FieldByIndexes(v, field)
-
-				if f.Kind() == reflect.Float32 || f.Kind() == reflect.Float64 {
-					return errors.Errorf("Type <%s> on column index <%d> is not allowed to use.", f.Kind(), field[0])
-				}
-
-				if f.Kind() == reflect.Map ||
-					f.Kind() == reflect.Slice ||
-					(f.Kind() == reflect.Pointer && f.Elem().Kind() == reflect.Struct) {
-					str := *values[i].(**string)
-					if str == nil {
-						v.FieldByIndex(field).SetZero()
-						continue
-					}
-					var m interface{}
-					err = json.Unmarshal([]byte(*str), &m)
-					if err != nil {
-						return err
-					}
-
-					if m == nil {
-						v.FieldByIndex(field).SetZero()
-						continue
-					}
-					if reflect.TypeOf(m).Kind() == reflect.Slice && reflect.TypeOf(m).Kind() != f.Kind() {
-						return errors.Errorf("Type <%s> of db value not match on column index <%d>. expect type <%s>.", reflect.TypeOf(m).Kind(), field[0], f.Kind())
-					}
-
-					value := f.Interface()
-					decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-						WeaklyTypedInput: true,
-						TagName:          "json",
-						Result:           &value,
-					})
-					if err != nil {
-						return err
-					}
-
-					err = decoder.Decode(m)
-					if err != nil {
-						return err
-					}
-
-					v.FieldByIndex(field).Set(reflect.ValueOf(value))
-					continue
-				}
+			err = unmarshalFields(v, fields, values)
+			if err != nil {
+				return err
 			}
 
 			if isPtr {

@@ -28,13 +28,13 @@ type Record struct {
 
 type NewPairPos struct {
 	IdType
-	UserId             uint64  `json:"user_id"`
-	NewPairId          uint64  `json:"new_pair_id"`
-	InitAmount         string  `json:"init_amount"`
-	InitTokenAmount    string  `json:"init_token_amount"`
-	CurrentTokenAmount string  `json:"current_token_amount"`
-	InitTimestamp      uint64  `json:"init_timestamp"`
-	Records            *Record `json:"records"` // *Record, map[string]interface{}, []Record, []map[string]interface{}, []*Record
+	UserId             uint64   `json:"user_id"`
+	NewPairId          uint64   `json:"new_pair_id"`
+	InitAmount         string   `json:"init_amount"`
+	InitTokenAmount    string   `json:"init_token_amount"`
+	CurrentTokenAmount string   `json:"current_token_amount"`
+	InitTimestamp      uint64   `json:"init_timestamp"`
+	Records            []Record `json:"records"` // *Record, map[string]interface{}, []Record, []map[string]interface{}, []*Record
 	DbTime
 }
 
@@ -75,25 +75,66 @@ func do() error {
 		return err
 	}
 
-	newPairs := make([]NewPair, 0)
+	// newPairs := make([]NewPair, 0)
+	// err = mysqlInstance.Select(
+	// 	&newPairs,
+	// 	&t_mysql.SelectParams{
+	// 		TableName: "new_pair",
+	// 		Select:    "*",
+	// 		Where:     "status = 1",
+	// 		Limit:     5,
+	// 		OrderBy: &t_mysql.OrderByType{
+	// 			Order: t_mysql.OrderType_DESC,
+	// 			Col:   "id",
+	// 		},
+	// 	},
+	// )
+	// if err != nil {
+	// 	return err
+	// }
+
+	newPairPoses := make([]NewPairPos, 0)
 	err = mysqlInstance.Select(
-		&newPairs,
+		&newPairPoses,
 		&t_mysql.SelectParams{
-			TableName: "new_pair",
+			TableName: "new_pair_pos",
 			Select:    "*",
-			Where:     "status = 0",
+			Limit:     5,
+			OrderBy: &t_mysql.OrderByType{
+				Order: t_mysql.OrderType_DESC,
+				Col:   "id",
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	for _, newPairPos := range newPairPoses {
+		for _, record := range newPairPos.Records {
+			fmt.Println(newPairPos.Id, record.TokenAmount)
+		}
+	}
+
+	var newPairPos NewPairPos
+	_, err = mysqlInstance.SelectFirst(
+		&newPairPos,
+		&t_mysql.SelectParams{
+			TableName: "new_pair_pos",
+			Select:    "*",
+			Where:     "id = 92",
 		},
 	)
 	if err != nil {
 		return err
 	}
 
-	for _, newPair := range newPairs {
-		fmt.Println(*newPair.Mark)
-		// for _, record := range task.Records {
-		// 	fmt.Println(record.Amount)
-		// }
-	}
+	fmt.Println(newPairPos.Id, newPairPos.Records[0].TokenAmount)
+	// for _, newPair := range newPairs {
+	// 	fmt.Println(newPair.Id, *newPair.Mark)
+	// 	// for _, record := range task.Records {
+	// 	// 	fmt.Println(record.Amount)
+	// 	// }
+	// }
 
 	return nil
 }
