@@ -406,7 +406,7 @@ func (mc *MysqlType) Insert(tableName string, params interface{}) (
 	lastInsertId uint64,
 	err error,
 ) {
-	sql, paramArgs, err := builder.buildInsertSql(tableName, params)
+	sql, paramArgs, err := builder.buildInsertSql(tableName, params, false)
 	if err != nil {
 		return 0, err
 	}
@@ -417,7 +417,7 @@ func (mc *MysqlType) InsertIgnore(tableName string, params interface{}) (
 	lastInsertId uint64,
 	err error,
 ) {
-	sql, paramArgs, err := builder.buildInsertSql(tableName, params)
+	sql, paramArgs, err := builder.buildInsertSql(tableName, params, true)
 	if err != nil {
 		return 0, err
 	}
@@ -504,7 +504,11 @@ type builderClass struct {
 
 var builder = builderClass{}
 
-func (mysql *builderClass) buildInsertSql(tableName string, params interface{}) (
+func (mysql *builderClass) buildInsertSql(
+	tableName string,
+	params interface{},
+	ignoreIfDuplicate bool,
+) (
 	sql string,
 	paramArgs []interface{},
 	err error,
@@ -574,7 +578,14 @@ func (mysql *builderClass) buildInsertSql(tableName string, params interface{}) 
 	}
 
 	str := fmt.Sprintf(
-		"insert into `%s` (`%s`) values %s",
+		"insert%s into `%s` (`%s`) values %s",
+		func() string {
+			if ignoreIfDuplicate {
+				return " ignore"
+			} else {
+				return ""
+			}
+		}(),
 		tableName,
 		strings.Join(cols[0], "`,`"),
 		strings.Join(vals, `,`),
