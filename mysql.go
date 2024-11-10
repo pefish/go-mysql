@@ -340,7 +340,8 @@ func (mc *MysqlType) Sum(
 	if err != nil {
 		return 0, err
 	}
-	if sumStruct.Sum == nil {
+
+	if sumStruct.Sum == nil || *sumStruct.Sum == "" {
 		return 0, nil
 	}
 	return go_format.MustToFloat64(*sumStruct.Sum), nil

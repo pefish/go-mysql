@@ -67,68 +67,27 @@ func do() error {
 	var mysqlInstance i_mysql.IMysql = go_mysql.NewMysqlInstance(&i_logger.DefaultLogger)
 	err := mysqlInstance.ConnectWithConfiguration(t_mysql.Configuration{
 		Host:     "52.68.233.193",
-		Username: "pefish_me",
+		Username: "freedom_web3",
 		Password: "",
-		Database: "pefish_me",
+		Database: "freedom_web3",
 	})
 	if err != nil {
 		return err
 	}
 
-	// newPairs := make([]NewPair, 0)
-	// err = mysqlInstance.Select(
-	// 	&newPairs,
-	// 	&t_mysql.SelectParams{
-	// 		TableName: "new_pair",
-	// 		Select:    "*",
-	// 		Where:     "status = 1",
-	// 		Limit:     5,
-	// 		OrderBy: &t_mysql.OrderByType{
-	// 			Order: t_mysql.OrderType_DESC,
-	// 			Col:   "id",
-	// 		},
-	// 	},
-	// )
-	// if err != nil {
-	// 	return err
-	// }
-
-	newPairPoses := make([]NewPairPos, 0)
-	err = mysqlInstance.Select(
-		&newPairPoses,
-		&t_mysql.SelectParams{
-			TableName: "new_pair_pos",
-			Select:    "*",
-			Limit:     5,
-			OrderBy: &t_mysql.OrderByType{
-				Order: t_mysql.OrderType_DESC,
-				Col:   "id",
-			},
+	withdrawCommissionAmount, err := mysqlInstance.Sum(
+		&t_mysql.SumParams{
+			TableName: "balance_change",
+			SumTarget: "change",
+			Where:     `address = ? and change_type = "withdraw_commission" and status in (0,1)`,
 		},
-	)
-	if err != nil {
-		return err
-	}
-	for _, newPairPos := range newPairPoses {
-		for _, record := range newPairPos.Records {
-			fmt.Println(newPairPos.Id, record.TokenAmount)
-		}
-	}
-
-	var newPairPos NewPairPos
-	_, err = mysqlInstance.SelectFirst(
-		&newPairPos,
-		&t_mysql.SelectParams{
-			TableName: "new_pair_pos",
-			Select:    "*",
-			Where:     "id = 92",
-		},
+		"0x88888888Ad8A8801aA83d728845e4847Bc2CD8be",
 	)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(newPairPos.Id, newPairPos.Records[0].TokenAmount)
+	fmt.Println(withdrawCommissionAmount)
 	// for _, newPair := range newPairs {
 	// 	fmt.Println(newPair.Id, *newPair.Mark)
 	// 	// for _, record := range task.Records {
