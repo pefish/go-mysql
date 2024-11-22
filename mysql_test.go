@@ -80,9 +80,10 @@ func TestBuilderClass_BuildUpdateSql(t *testing.T) {
 func TestBuilderClass_BuildInsertSql(t *testing.T) {
 	type Test struct {
 		IdType
-		A string  `json:"a"`
-		B uint64  `json:"b"`
-		C *string `json:"c,omitempty"`
+		A string                 `json:"a"`
+		B uint64                 `json:"b"`
+		C *string                `json:"c,omitempty"`
+		D map[string]interface{} `json:"d,omitempty"`
 		DbTime
 	}
 
@@ -99,7 +100,10 @@ func TestBuilderClass_BuildInsertSql(t *testing.T) {
 	sql3, params3, err := builder.buildInsertSql(`table`, Test{
 		B: 345,
 		A: `aaa`,
-	})
+		D: map[string]interface{}{
+			"aa": `sfgsfg'bvcbsg`,
+		},
+	}, false)
 	go_test_.Equal(t, nil, err)
 	fmt.Println(sql3, params3)
 	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql3), "insert into `table` "))
@@ -363,6 +367,7 @@ func Test_builderClass_buildInsertSql(t *testing.T) {
 	sql, args, err := mysql.buildInsertSql(
 		"table",
 		datas,
+		false,
 	)
 	go_test_.Equal(t, nil, err)
 	//fmt.Println(sql)
@@ -376,6 +381,7 @@ func Test_builderClass_buildInsertSql(t *testing.T) {
 			A: "b",
 			B: 3,
 		},
+		false,
 	)
 	go_test_.Equal(t, nil, err)
 	// fmt.Println(sql)
@@ -388,6 +394,7 @@ func Test_builderClass_buildInsertSql(t *testing.T) {
 		&Test{
 			B: 3,
 		},
+		false,
 	)
 	go_test_.Equal(t, nil, err)
 	go_test_.Equal(t, true, strings.HasPrefix(strings.ToLower(sql), "insert into `table`"))
