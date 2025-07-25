@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	i_logger "github.com/pefish/go-interface/i-logger"
 	i_mysql "github.com/pefish/go-interface/i-mysql"
 	t_mysql "github.com/pefish/go-interface/t-mysql"
@@ -20,42 +22,28 @@ type IdType struct {
 	Id uint64 `json:"id,omitempty"`
 }
 
-type Record struct {
-	TokenAmount float64 `json:"token_amount"`
-	Type        string  `json:"type"`
-	Amount      float64 `json:"amount"`
-}
-
-type NewPairPos struct {
+type CreateTokenRecord struct {
 	IdType
-	UserId             uint64   `json:"user_id"`
-	NewPairId          uint64   `json:"new_pair_id"`
-	InitAmount         string   `json:"init_amount"`
-	InitTokenAmount    string   `json:"init_token_amount"`
-	CurrentTokenAmount string   `json:"current_token_amount"`
-	InitTimestamp      uint64   `json:"init_timestamp"`
-	Records            []Record `json:"records"` // *Record, map[string]interface{}, []Record, []map[string]interface{}, []*Record
-	DbTime
-}
-
-type NewPair struct {
-	IdType
-	Chain               string  `json:"chain"`
-	TokenAddress        string  `json:"token_address"`
-	TokenDecimals       uint64  `json:"token_decimals"`
-	Token0IsWETH        uint64  `json:"token0_is_weth"`
-	TokenSymbol         string  `json:"token_symbol"`
-	PairAddress         string  `json:"pair_address"`
-	PairSymbol          string  `json:"pair_symbol"`
-	TradeStartTimestamp uint64  `json:"trade_start_timestamp"`
-	InitialEthInPool    string  `json:"initial_eth_in_pool"`
-	InitialTokenInPool  string  `json:"initial_token_in_pool"`
-	Mark                *string `json:"mark,omitempty"`
-	Status              uint64  `json:"status"`
+	TokenAddress        string         `json:"token_address"`
+	TokenPriv           string         `json:"token_priv"`
+	URI                 string         `json:"uri"`
+	FatherAddressIndex  uint64         `json:"father_address_index"`
+	CreatorAddressIndex uint64         `json:"creator_address_index"`
+	CreateTimestamp     uint64         `json:"create_timestamp"`
+	SubAddresses        []int          `json:"sub_addresses"`
+	Profit              string         `json:"profit"`
+	Status              uint64         `json:"status"`
+	ErrInfo             *string        `json:"err_info,omitempty"`
+	ProcessResult       map[string]any `json:"process_result"`
 	DbTime
 }
 
 func main() {
+	envMap, _ := godotenv.Read("./.env")
+	for k, v := range envMap {
+		os.Setenv(k, v)
+	}
+
 	err := do()
 	if err != nil {
 		log.Fatal(err)
@@ -66,34 +54,33 @@ func main() {
 func do() error {
 	var mysqlInstance i_mysql.IMysql = go_mysql.NewMysqlInstance(&i_logger.DefaultLogger)
 	err := mysqlInstance.ConnectWithConfiguration(t_mysql.Configuration{
-		Host:     "52.68.233.193",
-		Username: "freedom_web3",
-		Password: "",
-		Database: "freedom_web3",
+		Host:     os.Getenv("DB_HOST"),
+		Username: os.Getenv("DB_USER"),
+		Password: os.Getenv("DB_PASS"),
+		Database: os.Getenv("DB_DB"),
 	})
 	if err != nil {
 		return err
 	}
 
-	withdrawCommissionAmount, err := mysqlInstance.Sum(
-		&t_mysql.SumParams{
-			TableName: "balance_change",
-			SumTarget: "change",
-			Where:     `address = ? and change_type = "withdraw_commission" and status in (0,1)`,
+	records := make([]CreateTokenRecord, 0)
+	err = mysqlInstance.Select(&records, &t_mysql.SelectParams{
+		TableName: "create_token_record",
+		Select:    "*",
+		Where:     "status not in (5,6)",
+		OrderBy: &t_mysql.OrderByType{
+			Col:   "id",
+			Order: t_mysql.OrderType_ASC,
 		},
-		"0x88888888Ad8A8801aA83d728845e4847Bc2CD8be",
-	)
+		Limit: 1,
+	})
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(withdrawCommissionAmount)
-	// for _, newPair := range newPairs {
-	// 	fmt.Println(newPair.Id, *newPair.Mark)
-	// 	// for _, record := range task.Records {
-	// 	// 	fmt.Println(record.Amount)
-	// 	// }
-	// }
+	fmt.Printf("<Len: %d>; 准备处理...\n", len(records))
+	for _, record := range records {
+		fmt.Println(record.Profit)
+	}
 
 	return nil
 }
