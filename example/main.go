@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -38,6 +37,17 @@ type CreateTokenRecord struct {
 	DbTime
 }
 
+type FourmemeToken struct {
+	IdType
+	Name            string `json:"name"`
+	Address         string `json:"address"`
+	Symbol          string `json:"symbol"`
+	Creator         string `json:"creator"`
+	CreateTimestamp uint64 `json:"create_timestamp"`
+	CreateBlock     uint64 `json:"create_block"`
+	DbTime
+}
+
 func main() {
 	envMap, _ := godotenv.Read("./.env")
 	for k, v := range envMap {
@@ -63,23 +73,25 @@ func do() error {
 		return err
 	}
 
-	records := make([]CreateTokenRecord, 0)
-	err = mysqlInstance.Select(&records, &t_mysql.SelectParams{
-		TableName: "create_token_record",
-		Select:    "*",
-		Where:     "status not in (5,6)",
-		OrderBy: &t_mysql.OrderByType{
-			Col:   "id",
-			Order: t_mysql.OrderType_ASC,
+	fourmemeTokens := make([]FourmemeToken, 0)
+	err = mysqlInstance.Select(
+		&fourmemeTokens,
+		&t_mysql.SelectParams{
+			TableName: "fourmeme_token",
+			Select:    "*",
+			Where:     `name like ?`,
+			OrderBy: &t_mysql.OrderByType{
+				Col:   "create_timestamp",
+				Order: t_mysql.OrderType_DESC,
+			},
 		},
-		Limit: 1,
-	})
+		"%cz%",
+	)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("<Len: %d>; 准备处理...\n", len(records))
-	for _, record := range records {
-		fmt.Println(record.Profit)
+	for _, token := range fourmemeTokens {
+		log.Printf("token: %+v\n", token)
 	}
 
 	return nil
