@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	go_format "github.com/pefish/go-format"
+	go_format_any "github.com/pefish/go-format/any"
 	go_time "github.com/pefish/go-time"
 	"github.com/pkg/errors"
 
@@ -344,7 +345,7 @@ func (mc *MysqlType) Sum(
 	if sumStruct.Sum == nil || *sumStruct.Sum == "" {
 		return 0, nil
 	}
-	return go_format.MustToFloat64(*sumStruct.Sum), nil
+	return go_format_any.MustToFloat64(*sumStruct.Sum), nil
 }
 
 func (mc *MysqlType) SelectFirst(
@@ -531,7 +532,7 @@ func (mysql *builderClass) buildInsertSql(
 		for key, val := range map_ {
 			cols = append(cols, key)
 			mapVals = append(mapVals, "?")
-			paramArgs = append(paramArgs, go_format.ToString(val))
+			paramArgs = append(paramArgs, go_format_any.ToString(val))
 		}
 		return
 	}
@@ -633,7 +634,7 @@ func (mysql *builderClass) buildFromMap(ele map[string]any) (
 			args_ := make([]any, 0)
 			vals_ := make([]string, 0)
 			for i := 0; i < value_.Len(); i++ {
-				str := go_format.ToString(value_.Index(i).Interface())
+				str := go_format_any.ToString(value_.Index(i).Interface())
 				if str == "" {
 					continue
 				}
@@ -650,7 +651,7 @@ func (mysql *builderClass) buildFromMap(ele map[string]any) (
 			args = append(args, args_...)
 		} else {
 			cols = append(cols, key)
-			str := go_format.ToString(val)
+			str := go_format_any.ToString(val)
 			if strings.HasPrefix(str, `s:`) {
 				r := strings.Trim(str[2:], " ")
 				index := strings.Index(r, " ")
@@ -787,7 +788,7 @@ func (mysql *builderClass) structToMap(in_ any, result map[string]any) error {
 			}
 			continue
 		} else {
-			strValue = go_format.ToString(field.Interface())
+			strValue = go_format_any.ToString(field.Interface())
 		}
 		result[key] = strValue
 	}
@@ -812,7 +813,7 @@ func (mysql *builderClass) buildUpdateSql(updateParams *t_mysql.UpdateParams, va
 					continue
 				}
 				updateStr += fmt.Sprintf("`%s` = ?,", key)
-				paramArgs = append(paramArgs, go_format.ToString(val))
+				paramArgs = append(paramArgs, go_format_any.ToString(val))
 			}
 		} else {
 			return ``, nil, errors.New(`map value type error`)
@@ -829,7 +830,7 @@ func (mysql *builderClass) buildUpdateSql(updateParams *t_mysql.UpdateParams, va
 				continue
 			}
 			updateStr += fmt.Sprintf("`%s` = ?,", key)
-			paramArgs = append(paramArgs, go_format.ToString(val))
+			paramArgs = append(paramArgs, go_format_any.ToString(val))
 		}
 		updateStr = strings.TrimSuffix(updateStr, ",")
 	case reflect.String:

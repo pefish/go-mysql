@@ -5,7 +5,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/pefish/go-format v0.5.3
+	github.com/pefish/go-format v0.5.7
 	github.com/pefish/go-interface v0.1.5
 	github.com/pefish/go-test v0.0.5
 	github.com/pefish/go-time v0.3.5
